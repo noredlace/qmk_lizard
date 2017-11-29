@@ -32,17 +32,17 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|----+----+----+----+----+----|              |----+----+----+----+----+----|
      TAB , Q  , W  , E  , R  , T  ,                Y  , U  , I  , O  , P  ,ENT ,
   //|----+----+----+----+----+----|              |----+----+----+----+----+----|
-     RASE, A  , S  , D  , F  , G  ,                H  , J  , K  , L  ,SCLN,QUOT,
+     LSFT, A  , S  , D  , F  , G  ,                H  , J  , K  , L  ,SCLN,QUOT,
   //|----+----+----+----+----+----+----.    ,----|----+----+----+----+----+----|
-     LSFT, Z  , X  , C  , V  , B  ,BSPC ,     DEL, N  , M  ,COMM,DOT ,SLSH,RGHT,
+     LCTL, Z  , X  , C  , V  , B  ,BSPC ,     DEL, N  , M  ,COMM,DOT ,SLSH,RGHT,
   //`----+----+----+--+-+----+----+----/    \----+----+----+----+----+----+----'
-                       LCTL,LOWR, ENT,         SPC ,LGUI,LALT
+                       LALT,LOWR, ENT,         SPC ,RASE,LGUI
   //                  `----+----+----'        `----+----+----'
   ),
 
   [_LOWER] = KC_KEYMAP(
   //,----+----+----+----+----+----.              ,----+----+----+----+----+----.
-     TILD,EXLM, AT ,HASH,DLR ,PERC,               CIRC, 7  , 8  , 9  ,RPRN,BSPC,
+     TILD, F1 , F2 , F3 , F4 , F5 ,               CIRC, 7  , 8  , 9  ,RPRN,BSPC,
   //|----+----+----+----+----+----|              |----+----+----+----+----+----|
      TAB ,    ,    , UP ,    ,LPRN,               RPRN, 4  , 5  , 6  , 0  ,    ,
   //|----+----+----+----+----+----|              |----+----+----+----+----+----|
