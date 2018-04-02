@@ -62,9 +62,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //|----+----+----+----+----+----|              |----+----+----+----+----+----|
          ,MPRV,MNXT,VOLU,PGUP,UNDS,               EQL ,LEFT,DOWN,RGHT, P6 ,BSLS,
   //|----+----+----+----+----+----+----.    ,----|----+----+----+----+----+----|
-     LSFT,MSTP,MPLY,VOLD,PGDN,MINS,PGUP,      VOLU ,PLUS,END , P1 , P2 , P3 ,    ,
+     LSFT,MSTP,MPLY,VOLD,PGDN,MINS,PGUP,     VOLU,PLUS,END , P1 , P2 , P3 ,    ,
   //`----+----+----+--+-+----+----+----/    \----+----+----+----+----+----+----'
-                           ,    ,PGDN,          VOLD,    ,    
+                           ,    ,PGDN,         VOLD,    ,    
   //                  `----+----+----'        `----+----+----'
   ),
 
@@ -72,9 +72,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //,--------+--------+--------+--------+--------+--------.                          ,--------+--------+--------+--------+--------+--------.
       RGB_TOG, RGB_MOD, _______, _______, _______, _______,                            _______, _______, _______, _______, _______, _______,
   //|--------+--------+--------+--------+--------+--------|                          |--------+--------+--------+--------+--------+--------|
-      _______, RESET  , RGB_HUI, RGB_SAI, RGB_VAI, _______,                            _______, _______, _______, _______, _______, _______,
+      _______, RESET  , RGB_HUI, RGB_SAI, RGB_VAI, _______,                            RGB_M_P, RGB_M_B, RGB_M_R,RGB_M_SW, _______, _______,
   //|--------+--------+--------+--------+--------+--------|                          |--------+--------+--------+--------+--------+--------|
-      KC_CAPS, DEBUG  , RGB_HUD, RGB_SAD, RGB_VAD, _______,                            _______, _______, _______, _______, _______, _______,
+      KC_CAPS, DEBUG  , RGB_HUD, RGB_SAD, RGB_VAD, _______,                           RGB_M_SN, RGB_M_K, RGB_M_X, RGB_M_G, _______, _______,
   //|--------+--------+--------+--------+--------+--------+--------.        ,--------|--------+--------+--------+--------+--------+--------|
       BL_STEP, _______, _______, _______, _______, _______, _______,          _______, _______, _______, _______, _______, _______, _______,
   //`--------+--------+--------+----+---+--------+--------+--------/        \--------+--------+--------+---+----+--------+--------+--------'
@@ -135,3 +135,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
   }
   return true;
 }
+
+// How long (in ms) to wait between animation steps for the breathing mode
+const uint8_t RGBLED_BREATHING_INTERVALS[] PROGMEM = {30, 20, 10, 5};
+
+// How long (in ms) to wait between animation steps for the rainbow mode
+const uint8_t RGBLED_RAINBOW_MOOD_INTERVALS[] PROGMEM = {60, 20, 5};
+
+// How long (in ms) to wait between animation steps for the swirl mode
+const uint8_t RGBLED_RAINBOW_SWIRL_INTERVALS[] PROGMEM = {20, 10, 5};
+
+// How long (in ms) to wait between animation steps for the snake mode
+const uint8_t RGBLED_SNAKE_INTERVALS[] PROGMEM = {20, 10, 5};
+
+// How long (in ms) to wait between animation steps for the knight modes
+const uint8_t RGBLED_KNIGHT_INTERVALS[] PROGMEM = {127, 63, 31};
+
+// These control which colors are selected for the gradient mode
+const uint16_t RGBLED_GRADIENT_RANGES[] PROGMEM = {360, 240, 180, 120, 90};
