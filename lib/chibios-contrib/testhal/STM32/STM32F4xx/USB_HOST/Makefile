@@ -46,7 +46,7 @@ endif
 # If enabled, this option makes the build process faster by not compiling
 # modules not used in the current configuration.
 ifeq ($(USE_SMART_BUILD),)
-  USE_SMART_BUILD = no
+  USE_SMART_BUILD = yes
 endif
 
 #
@@ -102,10 +102,10 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include $(CHIBIOS)/test/rt/test.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 include $(CHIBIOS)/os/various/shell/shell.mk
-include $(CHIBIOS)/os/various/fatfs_bindings/fatfs.mk
+include $(CHIBIOS_CONTRIB)/os/various/fatfs_bindings/fatfs.mk
 
 # Define linker script file here
-LDSCRIPT = $(STARTUPLD)/STM32F407xG.ld
+LDSCRIPT= $(STARTUPLD)/STM32F407xG.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -120,7 +120,7 @@ CSRC = $(STARTUPSRC) \
        $(FATFSSRC) \
        $(STREAMSSRC) \
        $(SHELLSRC) \
-       main.c
+       main.c usbh_custom_class_example.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

@@ -281,6 +281,10 @@ struct USBDriver {
    * @brief   Current USB device configuration.
    */
   uint8_t                       configuration;
+  /**
+   * @brief   State of the driver when a suspend happened.
+   */
+  usbstate_t                    saved_state;
 #if defined(USB_DRIVER_EXT_FIELDS)
   USB_DRIVER_EXT_FIELDS
 #endif
@@ -331,6 +335,13 @@ struct USBDriver {
  * @api
  */
 #define usb_lld_disconnect_bus(usbp)
+
+/**
+ * @brief   Start of host wake-up procedure.
+ *
+ * @notapi
+ */
+#define usb_lld_wakeup_host(usbp)
 
 /*===========================================================================*/
 /* External declarations.                                                    */

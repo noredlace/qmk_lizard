@@ -20,7 +20,7 @@
 */
 
 /**
- * @file    AVR/pwm_lld.c
+ * @file    hal_pwm_lld.c
  * @brief   AVR PWM driver subsystem low level driver.
  *
  * @addtogroup PWM
@@ -559,7 +559,6 @@ void pwm_lld_disable_channel_notification(PWMDriver *pwmp,
   uint8_t i = timer_index(pwmp);
   *regs_table[i].timsk &= ~(1 << (channel + 1));
 }
-
 
 #endif /* HAL_USE_PWM */
 

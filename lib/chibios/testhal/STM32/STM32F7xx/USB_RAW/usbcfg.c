@@ -15,7 +15,7 @@
 */
 
 #include "hal.h"
-#include "usb_cdc.h"
+#include "hal_usb_cdc.h"
 #include "usbcfg.h"
 
 /*
@@ -272,6 +272,8 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
     usbInitEndpointI(usbp, USBD2_INTERRUPT_REQUEST_EP, &ep2config);
 
     chSysUnlockFromISR();
+    return;
+  case USB_EVENT_UNCONFIGURED:
     return;
   case USB_EVENT_SUSPEND:
     return;

@@ -120,13 +120,16 @@ void uartStop(UARTDriver *uartp) {
   osalDbgCheck(uartp != NULL);
 
   osalSysLock();
+
   osalDbgAssert((uartp->state == UART_STOP) || (uartp->state == UART_READY),
                 "invalid state");
 
   uart_lld_stop(uartp);
-  uartp->state = UART_STOP;
+  uartp->config  = NULL;
+  uartp->state   = UART_STOP;
   uartp->txstate = UART_TX_IDLE;
   uartp->rxstate = UART_RX_IDLE;
+
   osalSysUnlock();
 }
 
@@ -349,6 +352,8 @@ size_t uartStopReceiveI(UARTDriver *uartp) {
  *          sent to the UART or on timeout.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
+ * @note    This function implements a software timeout, it does not use
+ *          any underlying HW timeout mechanism.
  *
  * @param[in] uartp     pointer to the @p UARTDriver object
  * @param[in,out] np    number of data frames to transmit, on exit the number
@@ -379,7 +384,7 @@ msg_t uartSendTimeout(UARTDriver *uartp, size_t *np,
   /* Waiting for result.*/
   msg = osalThreadSuspendTimeoutS(&uartp->threadtx, timeout);
   if (msg != MSG_OK) {
-    *np = uartStopSendI(uartp);
+    *np -= uartStopSendI(uartp);
   }
   osalSysUnlock();
 
@@ -392,6 +397,8 @@ msg_t uartSendTimeout(UARTDriver *uartp, size_t *np,
  *          physically transmitted or on timeout.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
+ * @note    This function implements a software timeout, it does not use
+ *          any underlying HW timeout mechanism.
  *
  * @param[in] uartp     pointer to the @p UARTDriver object
  * @param[in,out] np    number of data frames to transmit, on exit the number
@@ -435,6 +442,8 @@ msg_t uartSendFullTimeout(UARTDriver *uartp, size_t *np,
  *          received or on error/timeout.
  * @note    The buffers are organized as uint8_t arrays for data sizes below
  *          or equal to 8 bits else it is organized as uint16_t arrays.
+ * @note    This function implements a software timeout, it does not use
+ *          any underlying HW timeout mechanism.
  *
  * @param[in] uartp     pointer to the @p UARTDriver object
  * @param[in,out] np    number of data frames to receive, on exit the number
@@ -466,7 +475,7 @@ msg_t uartReceiveTimeout(UARTDriver *uartp, size_t *np,
   /* Waiting for result.*/
   msg = osalThreadSuspendTimeoutS(&uartp->threadrx, timeout);
   if (msg != MSG_OK) {
-    *np = uartStopReceiveI(uartp);
+    *np -= uartStopReceiveI(uartp);
   }
   osalSysUnlock();
 

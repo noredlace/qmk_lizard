@@ -76,7 +76,7 @@
 /**
  * @brief   System tick frequency.
  */
-#define osKernelSysTickFrequency    CH_CFG_FREQUENCY
+#define osKernelSysTickFrequency    CH_CFG_ST_FREQUENCY
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */
@@ -402,7 +402,7 @@ static const msg_t os_messageQ_buf_##name[queue_sz];                        \
 static mailbox_t os_messageQ_obj_##name;                                    \
 const osMessageQDef_t os_messageQ_def_##name = {                            \
   (queue_sz),                                                               \
-  sizeof (type)                                                             \
+  sizeof (type),                                                            \
   (void *)&os_messageQ_obj_##name,                                          \
   (void *)&os_messageQ_buf_##name[0]                                        \
 }
@@ -504,7 +504,7 @@ static inline osStatus osThreadYield(void) {
  */
 static inline osPriority osThreadGetPriority(osThreadId thread_id) {
 
-  return thread_id->prio;
+  return (osPriority)(NORMALPRIO - thread_id->prio);
 }
 
 /**

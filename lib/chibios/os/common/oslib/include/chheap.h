@@ -39,9 +39,9 @@
  * @note    Cannot use the sizeof operator in this macro.
  */
 #if (SIZEOF_PTR == 4) || defined(__DOXYGEN__)
-#define CH_HEAP_ALIGNMENT   8
+#define CH_HEAP_ALIGNMENT   8U
 #elif (SIZEOF_PTR == 2)
-#define CH_HEAP_ALIGNMENT   4
+#define CH_HEAP_ALIGNMENT   4U
 #else
 #error "unsupported pointer size"
 #endif
@@ -95,7 +95,7 @@ union heap_header {
  * @brief   Structure describing a memory heap.
  */
 struct memory_heap {
-  memgetfunc_t          provider;   /**< @brief Memory blocks provider for
+  memgetfunc2_t         provider;   /**< @brief Memory blocks provider for
                                                 this heap.                  */
   heap_header_t         header;     /**< @brief Free blocks list header.    */
 #if CH_CFG_USE_MUTEXES == TRUE
@@ -163,6 +163,7 @@ static inline void *chHeapAlloc(memory_heap_t *heapp, size_t size) {
  *          same value aligned to the next @p CH_HEAP_ALIGNMENT multiple.
  *
  * @param[in] p         pointer to the memory block
+ * @return              Size of the block.
  *
  * @api
  */

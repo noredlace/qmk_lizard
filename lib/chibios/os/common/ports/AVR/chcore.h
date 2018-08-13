@@ -250,24 +250,24 @@ struct port_context {
 #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
                                       sizeof(struct port_intctx));          \
-  tp->ctx.sp->r2  = (uint8_t)(pf);                                          \
+  tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
-  tp->ctx.sp->r4  = (uint8_t)(arg);                                         \
+  tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
   tp->ctx.sp->pcx = (uint8_t)0;                                             \
   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
-  tp->ctx.sp->pch = (uint8_t)_port_thread_start;                            \
+  tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
 }
 #else /* !__AVR_3_BYTE_PC__ */
 #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
                                       sizeof(struct port_intctx));          \
-  tp->ctx.sp->r2  = (uint8_t)(pf);                                          \
+  tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
-  tp->ctx.sp->r4  = (uint8_t)(arg);                                         \
+  tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
-  tp->ctx.sp->pch = (uint8_t)_port_thread_start;                            \
+  tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
 }
 #endif /* !__AVR_3_BYTE_PC__ */
 
@@ -341,6 +341,22 @@ struct port_context {
 #define PORT_FAST_IRQ_HANDLER(id) ISR(id)
 
 /**
+ * @brief   Performs a context switch between two threads.
+ * @details This is the most critical code in any port, this function
+ *          is responsible for the context switch between 2 threads.
+ * @note    The implementation of this code affects <b>directly</b> the context
+ *          switch performance so optimize here as much as you can.
+ *
+ * @param[in] ntp       the thread to be switched in
+ * @param[in] otp       the thread to be switched out
+ */
+#define port_switch(ntp, otp) {                                             \
+  _port_switch(ntp, otp);                                                   \
+  asm volatile ("" : : : "memory");                                         \
+}
+
+
+/**
  * @brief   Port-related initialization code.
  * @note    This function is empty in this port.
  */
@@ -359,7 +375,7 @@ struct port_context {
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void port_switch(thread_t *ntp, thread_t *otp);
+  void _port_switch(thread_t *ntp, thread_t *otp);
   void _port_thread_start(void);
 #ifdef __cplusplus
 }

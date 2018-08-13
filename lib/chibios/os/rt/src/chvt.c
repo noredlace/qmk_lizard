@@ -131,24 +131,40 @@ void chVTDoSetI(virtual_timer_t *vtp, systime_t delay,
       return;
     }
 
-    /* Special case where the timer will be placed as first element in a
-       non-empty list, the alarm needs to be recalculated.*/
-    delta = now + delay - ch.vtlist.lasttime;
-    if (delta < ch.vtlist.next->delta) {
+    /* Pointer to the first element in the delta list, which is non-empty.*/
+    p = ch.vtlist.next;
 
-      /* New alarm deadline.*/
+    /* Delay as delta from 'lasttime'. Note, it can overflow and the value
+       becomes lower than 'now'.*/
+    delta = now - ch.vtlist.lasttime + delay;
+
+    if (delta < now - ch.vtlist.lasttime) {
+      /* Scenario where a very large delay excedeed the numeric range, it
+         requires a special handling. We need to skip the first element and
+         adjust the delta to wrap back in the previous numeric range.*/
+      delta -= p->delta;
+      p = p->next;
+    }
+    else if (delta < p->delta) {
+     /* A small delay that will become the first element in the delta list
+        and next deadline.*/
       port_timer_set_alarm(ch.vtlist.lasttime + delta);
     }
   }
 #else /* CH_CFG_ST_TIMEDELTA == 0 */
   /* Delta is initially equal to the specified delay.*/
   delta = delay;
+
+  /* Pointer to the first element in the delta list.*/
+  p = ch.vtlist.next;
 #endif /* CH_CFG_ST_TIMEDELTA == 0 */
 
   /* The delta list is scanned in order to find the correct position for
      this timer. */
-  p = ch.vtlist.next;
   while (p->delta < delta) {
+    /* Debug assert if the timer is already in the list.*/
+    chDbgAssert(p != vtp, "timer already armed");
+
     delta -= p->delta;
     p = p->next;
   }
@@ -158,11 +174,13 @@ void chVTDoSetI(virtual_timer_t *vtp, systime_t delay,
   vtp->prev = vtp->next->prev;
   vtp->prev->next = vtp;
   p->prev = vtp;
-  vtp->delta = delta
+  vtp->delta = delta;
+
+  /* Calculate new delta for the following entry.*/
+  p->delta -= delta;
 
   /* Special case when the timer is in last position in the list, the
-     value in the header must be restored.*/;
-  p->delta -= delta;
+     value in the header must be restored.*/
   ch.vtlist.delta = (systime_t)-1;
 }
 

@@ -16,16 +16,14 @@
     <identifier>MII_LAN8742A_ID</identifier>
     <bus_type>RMII</bus_type>
   </ethernet_phy>
-  <usb_phy>
-    <bus_type>ULPI</bus_type>
-  </usb_phy>
   <subtype>STM32F746xx</subtype>
   <clocks
     HSEFrequency="8000000"
     HSEBypass="true"
     LSEFrequency="32768"
     LSEBypass="false"
-    VDD="300" />
+    VDD="300"
+    LSEDrive="3 High Drive (default)" />
   <ports>
     <GPIOA>
       <pin0
@@ -85,13 +83,13 @@
         Mode="Input"
         Alternate="0" />
       <pin7
-        ID="ARD_D11 SPI1_MOSI ZIO_D71"
+        ID="ARD_D11 SPI1_MOSI ZIO_D71 RMII_RX_DV"
         Type="PushPull"
         Level="High"
         Speed="Maximum"
         Resistor="PullUp"
-        Mode="Input"
-        Alternate="0" />
+        Mode="Alternate"
+        Alternate="11" />
       <pin8
         ID="USB_SOF"
         Type="PushPull"
@@ -263,13 +261,13 @@
         Mode="Input"
         Alternate="0" />
       <pin13
-        ID="ZIO_D18 I2S2_CK"
+        ID="ZIO_D18 I2S2_CK RMII_TXD1"
         Type="PushPull"
         Level="High"
         Speed="Maximum"
         Resistor="PullUp"
-        Mode="Input"
-        Alternate="0" />
+        Mode="Alternate"
+        Alternate="11" />
       <pin14
         ID="LED3"
         Type="PushPull"

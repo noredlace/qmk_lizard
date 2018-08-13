@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    AVR/icu_lld.c
+ * @file    hal_icu_lld.c
  * @brief   AVR ICU driver subsystem low level driver source.
  *
  * @addtogroup ICU
@@ -52,7 +52,6 @@ static icu_registers_t regs_table[]=
   {&TCCR5A, &TCCR5B, &TCNT5, &TIMSK5},
 #endif
 };
-
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */

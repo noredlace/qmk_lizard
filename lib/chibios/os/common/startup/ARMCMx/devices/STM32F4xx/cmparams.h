@@ -48,7 +48,7 @@
  * @note    This number does not include the 16 system vectors and must be
  *          rounded to a multiple of 8.
  */
-#define CORTEX_NUM_VECTORS      96
+#define CORTEX_NUM_VECTORS      104
 
 /* The following code is not processed when the file is included from an
    asm module.*/
@@ -73,6 +73,8 @@
    assembler source files. We verify that the info matches instead.*/
 #include "stm32f4xx.h"
 
+/*lint -save -e9029 [10.4] Signedness comes from external files, it is
+  unpredictable but gives no problems.*/
 #if CORTEX_MODEL != __CORTEX_M
 #error "CMSIS __CORTEX_M mismatch"
 #endif
@@ -84,6 +86,7 @@
 #if CORTEX_PRIORITY_BITS != __NVIC_PRIO_BITS
 #error "CMSIS __NVIC_PRIO_BITS mismatch"
 #endif
+/*lint -restore*/
 
 #endif /* !defined(_FROM_ASM_) */
 

@@ -66,10 +66,10 @@ static void hal_lld_backup_domain_init(void) {
 #if STM32_LSE_ENABLED
 #if defined(STM32_LSE_BYPASS)
   /* LSE Bypass.*/
-  RCC->BDCR |= RCC_BDCR_LSEON | RCC_BDCR_LSEBYP;
+  RCC->BDCR |= STM32_LSEDRV | RCC_BDCR_LSEON | RCC_BDCR_LSEBYP;
 #else
   /* No LSE Bypass.*/
-  RCC->BDCR |= RCC_BDCR_LSEON;
+  RCC->BDCR |= STM32_LSEDRV | RCC_BDCR_LSEON;
 #endif
   while ((RCC->BDCR & RCC_BDCR_LSERDY) == 0)
     ;                                       /* Waits until LSE is stable.   */
@@ -120,9 +120,6 @@ void hal_lld_init(void) {
   rccResetAPB1(~RCC_APB1RSTR_PWRRST);
   rccResetAPB2(~0);
 
-  /* PWR clock enabled.*/
-  rccEnablePWRInterface(FALSE);
-
   /* Initializes the backup domain.*/
   hal_lld_backup_domain_init();
 
@@ -134,7 +131,7 @@ void hal_lld_init(void) {
   /* The SRAM2 bank can optionally made a non cache-able area for use by
      DMA engines.*/
   mpuConfigureRegion(MPU_REGION_7,
-                     0x2004C000U,
+                     SRAM2_BASE,
                      MPU_RASR_ATTR_AP_RW_RW |
                      MPU_RASR_ATTR_NON_CACHEABLE |
                      MPU_RASR_SIZE_16K |
@@ -162,8 +159,12 @@ void hal_lld_init(void) {
 void stm32_clock_init(void) {
 
 #if !STM32_NO_INIT
-  /* PWR clock enable.*/
+  /* PWR clock enabled.*/
+#if defined(HAL_USE_RTC) && defined(RCC_APB1ENR_RTCEN)
+  RCC->APB1ENR = RCC_APB1ENR_PWREN | RCC_APB1ENR_RTCEN;
+#else
   RCC->APB1ENR = RCC_APB1ENR_PWREN;
+#endif
 
   /* PWR initialization.*/
   PWR->CR1 = STM32_VOS;
@@ -246,7 +247,7 @@ void stm32_clock_init(void) {
   /* PLLSAI activation.*/
   RCC->PLLSAICFGR = STM32_PLLSAIR | STM32_PLLSAIQ | STM32_PLLSAIP |
                     STM32_PLLSAIN;
- RCC->CR |= RCC_CR_PLLSAION;
+  RCC->CR |= RCC_CR_PLLSAION;
 
   /* Waiting for PLL lock.*/
   while (!(RCC->CR & RCC_CR_PLLSAIRDY))
@@ -261,15 +262,12 @@ void stm32_clock_init(void) {
   /* DCKCFGR1 register initialization, note, must take care of the _OFF
      pseudo settings.*/
   {
-    uint32_t dckcfgr1 = 0;
+    uint32_t dckcfgr1 = STM32_PLLI2SDIVQ | STM32_PLLSAIDIVQ | STM32_PLLSAIDIVR;
 #if STM32_SAI2SEL != STM32_SAI2SEL_OFF
     dckcfgr1 |= STM32_SAI2SEL;
 #endif
 #if STM32_SAI1SEL != STM32_SAI1SEL_OFF
     dckcfgr1 |= STM32_SAI1SEL;
-#endif
-#if STM32_PLLSAIDIVR != STM32_PLLSAIDIVR_OFF
-    dckcfgr1 |= STM32_PLLSAIDIVR;
 #endif
     RCC->DCKCFGR1 = dckcfgr1;
   }

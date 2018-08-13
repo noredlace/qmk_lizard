@@ -48,7 +48,7 @@
  */
 #define _base_compass_methods_alone                                         \
   /* Invoke the set bias procedure.*/                                       \
-  msg_t (*set_bias)(void *instance, int32_t biases[]);                      \
+  msg_t (*set_bias)(void *instance, float biases[]);                        \
   /* Remove bias stored data.*/                                             \
   msg_t (*reset_bias)(void *instance);                                      \
   /* Invoke the set sensitivity procedure.*/                                \
@@ -98,12 +98,12 @@ typedef struct {
  * @brief   Compass get axes number.
  *
  * @param[in] ip        pointer to a @p BaseCompass class.
- * @return              The number of axes of the BaseSensor
+ * @return              The number of axes of the BaseCompass
  *
  * @api
  */
 #define compassGetAxesNumber(ip)                                            \
-        (ip)->vmt_basecompass->get_axes_number(ip)
+        (ip)->vmt_basecompass->get_channels_number(ip)
 
 /**
  * @brief   Compass read raw data.
@@ -138,8 +138,7 @@ typedef struct {
 /**
  * @brief   Updates compass bias data from received buffer.
  * @note    The bias buffer must have the same length of the
- *          the compass axes number. Bias must be computed on
- *          raw data and is a signed integer.
+ *          the compass axes number.
  *
  * @param[in] ip        pointer to a @p BaseCompass class.
  * @param[in] bp        pointer to a buffer of bias values.

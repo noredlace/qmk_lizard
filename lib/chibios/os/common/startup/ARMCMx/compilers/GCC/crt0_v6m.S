@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    crt0_v6m.s
+ * @file    crt0_v6m.S
  * @brief   Generic ARMv6-M (Cortex-M0/M1) startup file for ChibiOS.
  *
  * @addtogroup ARMCMx_GCC_STARTUP_V6M
@@ -44,6 +44,15 @@
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */
 /*===========================================================================*/
+
+/**
+ * @brief   Enforces initialization of MSP.
+ * @note    This is required if the boot process is not reliable for whatever
+ *          reason (bad ROMs, bad bootloaders, bad debuggers=.
+ */
+#if !defined(CRT0_VTOR_INIT) || defined(__DOXYGEN__)
+#define CRT0_FORCE_MSP_INIT                 TRUE
+#endif
 
 /**
  * @brief   VTOR special register initialization.
@@ -141,6 +150,12 @@
 Reset_Handler:
                 /* Interrupts are globally masked initially.*/
                 cpsid   i
+
+#if CRT0_FORCE_MSP_INIT == TRUE
+                /* MSP stack pointers initialization.*/
+                ldr     r0, =__main_stack_end__
+                msr     MSP, r0
+#endif
 
                 /* PSP stack pointers initialization.*/
                 ldr     r0, =__process_stack_end__

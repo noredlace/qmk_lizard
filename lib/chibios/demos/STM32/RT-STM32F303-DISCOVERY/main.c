@@ -26,24 +26,16 @@ THD_FUNCTION(Thread1, arg) {
 
   (void)arg;
 
-  chRegSetThreadName("blinker");
+  chRegSetThreadName("blinker 1");
   while (true) {
-    palSetPad(GPIOE, GPIOE_LED3_RED);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED3_RED);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED7_GREEN);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED7_GREEN);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED10_RED);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED10_RED);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED6_GREEN);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED6_GREEN);
-    chThdSleepMilliseconds(125);
+    palToggleLine(LINE_LED3_RED);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_LED7_GREEN);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_LED10_RED);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_LED6_GREEN);
+    chThdSleepMilliseconds(100);
   }
 }
 
@@ -55,24 +47,17 @@ THD_FUNCTION(Thread2, arg) {
 
   (void)arg;
 
-  chRegSetThreadName("blinker");
+  chRegSetThreadName("blinker 2");
   while (true) {
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED5_ORANGE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED5_ORANGE);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED9_BLUE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED9_BLUE);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED8_ORANGE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED8_ORANGE);
-    chThdSleepMilliseconds(125);
-    palSetPad(GPIOE, GPIOE_LED4_BLUE);
-    chThdSleepMilliseconds(125);
-    palClearPad(GPIOE, GPIOE_LED4_BLUE);
+    chThdSleepMilliseconds(50);
+    palToggleLine(LINE_LED5_ORANGE);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_LED9_BLUE);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_LED8_ORANGE);
+    chThdSleepMilliseconds(100);
+    palToggleLine(LINE_LED4_BLUE);
+    chThdSleepMilliseconds(50);
   }
 }
 

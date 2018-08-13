@@ -34,7 +34,7 @@ endif
 ifeq ($(BUILDDIR),.)
   BUILDDIR = build
 endif
-OUTFILES = $(BUILDDIR)/$(PROJECT).exe
+OUTFILES = $(BUILDDIR)/$(PROJECT)
            
 
 # Source files groups and paths
@@ -66,14 +66,15 @@ LIBS      = $(DLIBS) $(ULIBS)
 # Various settings
 MCFLAGS   =
 ODFLAGS	  = -x --syms
-ASFLAGS   = $(MCFLAGS) -Wa,-amhls=$(LSTDIR)/$(notdir $(<:.s=.lst)) $(ADEFS)
-ASXFLAGS  = $(MCFLAGS) -Wa,-amhls=$(LSTDIR)/$(notdir $(<:.S=.lst)) $(ADEFS)
+ASFLAGS   = $(MCFLAGS) $(OPT) -Wa,-amhls=$(LSTDIR)/$(notdir $(<:.s=.lst)) $(ADEFS)
+ASXFLAGS  = $(MCFLAGS) $(OPT) -Wa,-amhls=$(LSTDIR)/$(notdir $(<:.S=.lst)) $(ADEFS)
 CFLAGS    = $(MCFLAGS) $(OPT) $(COPT) $(CWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.c=.lst)) $(DEFS)
 CPPFLAGS  = $(MCFLAGS) $(OPT) $(CPPOPT) $(CPPWARN) -Wa,-alms=$(LSTDIR)/$(notdir $(<:.cpp=.lst)) $(DEFS)
 LDFLAGS   = $(MCFLAGS) $(OPT) $(LLIBDIR) -Wl,-Map=$(BUILDDIR)/$(PROJECT).map,--cref,--no-warn-mismatch,$(LDOPT)
 
 # Generate dependency information
 ASFLAGS  += -MD -MP -MF .dep/$(@F).d
+ASXFLAGS += -MD -MP -MF .dep/$(@F).d
 CFLAGS   += -MD -MP -MF .dep/$(@F).d
 CPPFLAGS += -MD -MP -MF .dep/$(@F).d
 
@@ -142,7 +143,7 @@ else
 	@$(CC) -c $(ASXFLAGS) -I. $(IINCDIR) $< -o $@
 endif
 
-%.exe: $(OBJS)
+$(BUILDDIR)/$(PROJECT): $(OBJS)
 ifeq ($(USE_VERBOSE_COMPILE),yes)
 	@echo
 	$(LD) $(OBJS) $(LDFLAGS) $(LIBS) -o $@
@@ -158,11 +159,13 @@ $(BUILDDIR)/lib$(PROJECT).a: $(OBJS)
 	@echo
 	@echo Done
 
-clean:
+clean: CLEAN_RULE_HOOK
 	@echo Cleaning
 	-rm -fR .dep $(BUILDDIR)
 	@echo
 	@echo Done
+
+CLEAN_RULE_HOOK:
 
 .PHONY: gcov
 gcov:

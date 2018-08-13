@@ -193,7 +193,6 @@ thread_t *chThdCreateSuspendedI(const thread_descriptor_t *tdp) {
   return _thread_init(tp, tdp->name, tdp->prio);
 }
 
-
 /**
  * @brief   Creates a new thread into a static memory area.
  * @details The new thread is initialized but not inserted in the ready list,
@@ -378,7 +377,8 @@ thread_t *chThdCreateStatic(void *wsp, size_t size,
 thread_t *chThdStart(thread_t *tp) {
 
   chSysLock();
-  tp = chThdStartI(tp);
+  chDbgAssert(tp->state == CH_STATE_WTSTART, "wrong state");
+  chSchWakeupS(tp, MSG_OK);
   chSysUnlock();
 
   return tp;

@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    onewire.h
+ * @file    hal_onewire.h
  * @brief   1-wire Driver macros and structures.
  *
  * @addtogroup onewire
  * @{
  */
 
-#ifndef _ONEWIRE_H_
-#define _ONEWIRE_H_
+#ifndef HAL_ONEWIRE_H_
+#define HAL_ONEWIRE_H_
 
 #if (HAL_USE_ONEWIRE == TRUE) || defined(__DOXYGEN__)
 
@@ -59,11 +59,13 @@
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
+#if ONEWIRE_SYNTH_SEARCH_TEST && !ONEWIRE_USE_SEARCH_ROM
+#error "Synthetic search rom test needs ONEWIRE_USE_SEARCH_ROM"
+#endif
 
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
-
 #if !HAL_USE_PWM
 #error "1-wire Driver requires HAL_USE_PWM"
 #endif
@@ -328,7 +330,6 @@ extern onewireDriver OWD1;
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void onewireInit(void);
   void onewireObjectInit(onewireDriver *owp);
   void onewireStart(onewireDriver *owp, const onewireConfig *config);
   void onewireStop(onewireDriver *owp);
@@ -342,8 +343,8 @@ extern "C" {
                           uint8_t *result, size_t max_rom_cnt);
 #endif /* ONEWIRE_USE_SEARCH_ROM */
 #if ONEWIRE_SYNTH_SEARCH_TEST
-  void _synth_ow_write_bit(onewireDriver *owp, uint8_t bit);
-  uint_fast8_t _synth_ow_read_bit(void);
+  void _synth_ow_write_bit(onewireDriver *owp, ioline_t bit);
+  ioline_t _synth_ow_read_bit(void);
   void synthSearchRomTest(onewireDriver *owp);
 #endif /* ONEWIRE_SYNTH_SEARCH_TEST */
 #ifdef __cplusplus
@@ -352,7 +353,7 @@ extern "C" {
 
 #endif /* HAL_USE_ONEWIRE */
 
-#endif /* _ONEWIRE_H_ */
+#endif /* HAL_ONEWIRE_H_ */
 
 /** @} */
 

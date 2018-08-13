@@ -672,17 +672,17 @@ void i2c_lld_init(void) {
 void i2c_lld_start(I2CDriver *i2cp) {
   I2C_TypeDef *dp = i2cp->i2c;
 
-#if STM32_I2C_USE_DMA == TRUE
-  /* Common DMA modes.*/
-  i2cp->txdmamode = DMAMODE_COMMON | STM32_DMA_CR_DIR_M2P;
-  i2cp->rxdmamode = DMAMODE_COMMON | STM32_DMA_CR_DIR_P2M;
-#endif
-
   /* Make sure I2C peripheral is disabled */
   dp->CR1 &= ~I2C_CR1_PE;
 
   /* If in stopped state then enables the I2C and DMA clocks.*/
   if (i2cp->state == I2C_STOP) {
+
+#if STM32_I2C_USE_DMA == TRUE
+    /* Common DMA modes.*/
+    i2cp->txdmamode = DMAMODE_COMMON | STM32_DMA_CR_DIR_M2P;
+    i2cp->rxdmamode = DMAMODE_COMMON | STM32_DMA_CR_DIR_P2M;
+#endif
 
 #if STM32_I2C_USE_I2C1
     if (&I2CD1 == i2cp) {
@@ -940,8 +940,6 @@ void i2c_lld_stop(I2CDriver *i2cp) {
 
 /**
  * @brief   Receives data via the I2C bus as master.
- * @details Number of receiving bytes must be more than 1 on STM32F1x. This is
- *          hardware restriction.
  *
  * @param[in] i2cp      pointer to the @p I2CDriver object
  * @param[in] addr      slave device address
@@ -1042,8 +1040,6 @@ msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
 
 /**
  * @brief   Transmits data via the I2C bus as master.
- * @details Number of receiving bytes must be 0 or more than 1 on STM32F1x.
- *          This is hardware restriction.
  *
  * @param[in] i2cp      pointer to the @p I2CDriver object
  * @param[in] addr      slave device address

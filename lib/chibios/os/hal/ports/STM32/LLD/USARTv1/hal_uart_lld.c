@@ -565,10 +565,10 @@ void uart_lld_start(UARTDriver *uartp) {
     if (&UARTD4 == uartp) {
       bool b;
 
-      chDbgAssert((uartp->config->cr2 & STM32_UART45_CR2_CHECK_MASK) == 0,
-                  "specified invalid bits in UART4 CR2 register settings");
-      chDbgAssert((uartp->config->cr3 & STM32_UART45_CR3_CHECK_MASK) == 0,
-                  "specified invalid bits in UART4 CR3 register settings");
+      osalDbgAssert((uartp->config->cr2 & STM32_UART45_CR2_CHECK_MASK) == 0,
+                    "specified invalid bits in UART4 CR2 register settings");
+      osalDbgAssert((uartp->config->cr3 & STM32_UART45_CR3_CHECK_MASK) == 0,
+                    "specified invalid bits in UART4 CR3 register settings");
 
       b = dmaStreamAllocate(uartp->dmarx,
                             STM32_UART_UART4_IRQ_PRIORITY,
@@ -591,10 +591,10 @@ void uart_lld_start(UARTDriver *uartp) {
     if (&UARTD5 == uartp) {
       bool b;
 
-      chDbgAssert((uartp->config->cr2 & STM32_UART45_CR2_CHECK_MASK) == 0,
-                  "specified invalid bits in UART5 CR2 register settings");
-      chDbgAssert((uartp->config->cr3 & STM32_UART45_CR3_CHECK_MASK) == 0,
-                  "specified invalid bits in UART5 CR3 register settings");
+      osalDbgAssert((uartp->config->cr2 & STM32_UART45_CR2_CHECK_MASK) == 0,
+                    "specified invalid bits in UART5 CR2 register settings");
+      osalDbgAssert((uartp->config->cr3 & STM32_UART45_CR3_CHECK_MASK) == 0,
+                    "specified invalid bits in UART5 CR3 register settings");
 
       b = dmaStreamAllocate(uartp->dmarx,
                             STM32_UART_UART5_IRQ_PRIORITY,
@@ -730,9 +730,10 @@ void uart_lld_start_send(UARTDriver *uartp, size_t n, const void *txbuf) {
   dmaStreamSetMode(uartp->dmatx, uartp->dmamode    | STM32_DMA_CR_DIR_M2P |
                                  STM32_DMA_CR_MINC | STM32_DMA_CR_TCIE);
 
-  /* Only enable TC interrupt if there's a callback attached to it.
-     Also we need to clear TC flag which could be set before. */
-  if (uartp->config->txend2_cb != NULL) {
+  /* Only enable TC interrupt if there's a callback attached to it or
+     if called from uartSendFullTimeout(). Also we need to clear TC flag
+     which could be set before.*/
+  if ((uartp->config->txend2_cb != NULL) || (uartp->early == false)) {
     uartp->usart->SR = ~USART_SR_TC;
     uartp->usart->CR1 |= USART_CR1_TCIE;
   }

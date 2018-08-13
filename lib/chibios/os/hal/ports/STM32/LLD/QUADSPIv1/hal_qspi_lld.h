@@ -25,11 +25,29 @@
 #ifndef HAL_QSPI_LLD_H
 #define HAL_QSPI_LLD_H
 
-#if HAL_USE_QSPI || defined(__DOXYGEN__)
+#if (HAL_USE_QSPI == TRUE) || defined(__DOXYGEN__)
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/
+
+/**
+ * @name    QSPI capabilities
+ * @{
+ */
+#define QSPI_SUPPORTS_MEMMAP                TRUE
+/** @} */
+
+/**
+ * @name    DCR register options
+ * @{
+ */
+#define STM32_DCR_CK_MODE                   (1U << 0U)
+#define STM32_DCR_CSHT_MASK                 (7U << 8U)
+#define STM32_DCR_CSHT(n)                   ((n) << 8U)
+#define STM32_DCR_FSIZE_MASK                (31U << 16U)
+#define STM32_DCR_FSIZE(n)                  ((n) << 16U)
+/** @} */
 
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
@@ -55,7 +73,7 @@
  *          find the details in the data sheet.
  */
 #if !defined(STM32_QSPI_QUADSPI1_PRESCALER_VALUE) || defined(__DOXYGEN__)
-#define STM32_QSPI_QUADSPI1_PRESCALER_VALUE 4
+#define STM32_QSPI_QUADSPI1_PRESCALER_VALUE 1
 #endif
 
 /**
@@ -84,6 +102,17 @@
  */
 #if !defined(STM32_QSPI_DMA_ERROR_HOOK) || defined(__DOXYGEN__)
 #define STM32_QSPI_DMA_ERROR_HOOK(qspip)    osalSysHalt("DMA failure")
+#endif
+
+/**
+ * @brief   Enables a workaround for a STM32L476 QUADSPI errata.
+ * @details The document DM00111498 states: "QUADSPI_BK1_IO1 is always an
+ *          input when the command is sent in dual or quad SPI mode".
+ *          This workaround makes commands without address or data phases
+ *          to be sent as alternate bytes.
+ */
+#if !defined(STM32_USE_STM32_D1_WORKAROUND) || defined(__DOXYGEN__)
+#define STM32_USE_STM32_D1_WORKAROUND       TRUE
 #endif
 /** @} */
 
@@ -182,13 +211,13 @@ struct QSPIDriver {
    * @brief   Current configuration data.
    */
   const QSPIConfig           *config;
-#if QSPI_USE_WAIT || defined(__DOXYGEN__)
+#if (QSPI_USE_WAIT == TRUE) || defined(__DOXYGEN__)
   /**
    * @brief   Waiting thread.
    */
   thread_reference_t        thread;
 #endif /* QSPI_USE_WAIT */
-#if QSPI_USE_MUTUAL_EXCLUSION || defined(__DOXYGEN__)
+#if (QSPI_USE_MUTUAL_EXCLUSION == TRUE) || defined(__DOXYGEN__)
   /**
    * @brief   Mutex protecting the peripheral.
    */
@@ -220,7 +249,7 @@ struct QSPIDriver {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#if STM32_QSPI_USE_QUADSPI1 && !defined(__DOXYGEN__)
+#if (STM32_QSPI_USE_QUADSPI1 == TRUE) && !defined(__DOXYGEN__)
 extern QSPIDriver QSPID1;
 #endif
 
@@ -235,6 +264,12 @@ extern "C" {
                      size_t n, const uint8_t *txbuf);
   void qspi_lld_receive(QSPIDriver *qspip, const qspi_command_t *cmdp,
                         size_t n, uint8_t *rxbuf);
+#if QSPI_SUPPORTS_MEMMAP == TRUE
+  void qspi_lld_map_flash(QSPIDriver *qspip,
+                          const qspi_command_t *cmdp,
+                          uint8_t **addrp);
+  void qspi_lld_unmap_flash(QSPIDriver *qspip);
+#endif
 #ifdef __cplusplus
 }
 #endif
