@@ -25,77 +25,6 @@ enum orgonaut_keycodes {
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 	
-
-
-/*
-	[_QWERTY] = KEYMAP(
-		KC_1,    KC_2,    KC_5,                        KC_6,    KC_9,    KC_0, 
-		KC_ESC,  KC_3,    KC_4,                        KC_7,    KC_8,    KC_BSPC, 
-		KC_DEL,  KC_E,    KC_R,                        KC_U,    KC_I,    KC_BSLS, 
-		KC_Q,    KC_W,    KC_T,    KC_LBRC,   KC_RBRC, KC_Y,    KC_O,    KC_P, 
-		KC_TAB,  KC_D,    KC_F,    KC_G,      KC_H,    KC_J,    KC_K,    KC_ENT, 
-		KC_A,    KC_S,    KC_C,    KC_PGUP,   KC_PGDN, KC_COMM, KC_L,    KC_SCLN, 
-		KC_LCTL, KC_X,    KC_V,    KC_B,      KC_N,    KC_M,    KC_DOT,  KC_SLSH, 
-		KC_Z,    KC_LCTL, KC_LGUI, MO(1),     MO(2),   KC_DOWN, KC_UP,   KC_LSFT, 
-		KC_LSFT, KC_LCTL, KC_LALT, KC_SPC,    KC_ENT,  KC_LEFT, KC_RGHT, KC_LCTL),
-		*/
-
-/*
-	[_QWERTY] = KEYMAP(
-		KC_1, KC_2, KC_5, KC_6, KC_9, KC_0, 
-		KC_ESC, KC_3, KC_4, KC_7, KC_8, KC_BSPC, 
-		KC_DEL, KC_E, KC_R, KC_U, KC_I, KC_BSLS, 
-		KC_Q, KC_W, KC_T, KC_LBRC, KC_RBRC, KC_Y, KC_O, KC_P, 
-		KC_TAB, KC_D, KC_F, KC_G, KC_H, KC_J, KC_K, KC_ENT, 
-		KC_A, KC_S, KC_C, KC_PGUP, KC_PGDN, KC_COMM, KC_L, KC_SCLN, 
-		KC_LCTL, KC_X, KC_V, KC_B, KC_N, KC_M, KC_DOT, KC_SLSH, 
-		KC_Z, KC_LCTL, KC_LGUI, LOWER, RAISE, KC_DOWN, KC_UP, KC_LSFT, 
-		KC_LSFT, FUNCTION, KC_LALT, KC_SPC, KC_ENT, KC_LEFT, KC_RGHT, RESET),
-
-	[_LOWER] = KEYMAP(
-		KC_EXLM, KC_AT, KC_TRNS, KC_TRNS, KC_9, KC_MINS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_7, KC_8, KC_TRNS, 
-		KC_L, KC_TRNS, KC_TRNS, KC_4, KC_5, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, RESET, KC_TRNS, KC_TRNS, KC_6, KC_PLUS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_1, KC_2, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_0, KC_3, KC_ASTR, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_0, KC_ENT, KC_SLSH, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_ENT, KC_TRNS, KC_TRNS, KC_TRNS),
-
-	[_RAISE] = KEYMAP(
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_R, KC_TRNS, KC_TRNS, KC_TRNS, KC_UP, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, RESET, KC_PSCR, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_LEFT, KC_DOWN, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_SLCK, KC_TRNS, KC_RGHT, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_VOLD, KC_VOLU, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_MSTP, KC_MPLY, KC_TRNS),
-
-	[_ADJUST] = KEYMAP(
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_A, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, RESET, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS),
-
-	[_FUNCTION] = KEYMAP(
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_F, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, 
-		KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS)
-*/
 	
 	/* Qwerty
  * +------+------+------+------+------+------+------+------+------+------+------+------+------+------+-------------+
@@ -110,9 +39,10 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  * |             |Fn    | Ctrl | Alt  | GUI  |Lower | Space| Enter|Raise | Left | Down |  Up  |Right |
  * `-----------------------------------------------------------------------------------'
  */
- 	
+	
 
-	[_QWERTY] = lizardKeys(
+	
+	[_QWERTY] = KEYMAP(
 	 KC_DEL, KC_ESC,   KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC, 
 			 KC_TAB,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,   KC_LBRC, KC_RBRC,  KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_PIPE, 
 		     KC_LCTL,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,   KC_PGDN, KC_PGUP,  KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT, 
@@ -120,9 +50,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 				       KC_F,    KC_LCTL, KC_LGUI, KC_LALT, LOWER,  KC_SPC,  KC_ENT,   RAISE,   KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT 
    ),
 	
-		
 
-	[_FUNCTION] = lizardKeys(
+	[_FUNCTION] = KEYMAP(
      KC_F,   RESET,    KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC,
   			 KC_TAB,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_LBRC, KC_RBRC, KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_PIPE,
   			 KC_LCTL,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_PGDN, KC_PGUP, KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
@@ -131,7 +60,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   ),
 
 
-	[_LOWER] = lizardKeys(
+	[_LOWER] = KEYMAP(
      KC_L,   KC_ESC,   KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC,
   			 KC_TAB,   KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_LBRC, KC_RBRC, KC_Y,    KC_4,    KC_5,    KC_6,    KC_PLUS, KC_PIPE,
   			 KC_LCTL,  KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_G,    KC_PGDN, KC_PGUP, KC_H,    KC_1,    KC_2,    KC_3,    KC_MINS, KC_QUOT,
@@ -139,7 +68,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   			           KC_F,    KC_TRNS, KC_TRNS, KC_TRNS, KC_TRNS, KC_SPC,  KC_ENT,  KC_TRNS, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
 ),
 
-	[_RAISE] = lizardKeys(
+	[_RAISE] = KEYMAP(
      KC_R,   KC_ESC,   KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC,
   			 KC_TAB,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_LBRC, KC_RBRC, KC_Y,    KC_U,    KC_UP,   KC_O,    KC_P,    KC_PIPE,
   			 KC_LCTL,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_PGDN, KC_PGUP, KC_H,    KC_LEFT, KC_DOWN, KC_RGHT, KC_SCLN, KC_QUOT,
@@ -147,9 +76,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   			           KC_F,    KC_LCTL, KC_LGUI, KC_LALT,KC_TRNS,  KC_SPC,  KC_ENT,  KC_TRNS, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
 ),
 
-	[_ADJUST] = lizardKeys(
+	[_ADJUST] = KEYMAP(
      KC_A,   KC_ESC,   KC_1,    KC_2,    KC_3,    KC_4,    KC_5,                      KC_6,    KC_7,    KC_8,    KC_9,    KC_0,    KC_BSPC,
-  			 KC_TAB,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    KC_LBRC, KC_RBRC, KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_PIPE,
+  			 KC_TAB,   KC_Q,    KC_W,    KC_E,    KC_R,    KC_T,    RESET,   KC_RBRC, KC_Y,    KC_U,    KC_I,    KC_O,    KC_P,    KC_PIPE,
   			 KC_LCTL,  KC_A,    KC_S,    KC_D,    KC_F,    KC_G,    KC_PGDN, KC_PGUP, KC_H,    KC_J,    KC_K,    KC_L,    KC_SCLN, KC_QUOT,
   			 KC_LSFT,  KC_Z,    KC_X,    KC_C,    KC_V,    KC_B,                      KC_N,    KC_M,    KC_COMM, KC_DOT,  KC_SLSH, KC_RSFT,  KC_TRNS,
   			           KC_F,    KC_LCTL, KC_LGUI, KC_LALT, KC_TRNS, KC_SPC,  KC_ENT,  KC_TRNS, KC_LEFT, KC_DOWN, KC_UP,   KC_RGHT
