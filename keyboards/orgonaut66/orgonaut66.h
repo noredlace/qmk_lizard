@@ -31,8 +31,8 @@
 
 //attempt to create keymap based off physical layout and not diode layout
 #define KEYMAP( \
-	     K20, K10, K00,           K01, K02, K11, \
-		 K12, K05, K15,           K16, K06, K07, \
+	     K20, K10, K00,           K01, K11, K12, \
+		 K02, K05, K15,           K16, K06, K07, \
 		 K17, K40, K30,           K31, K21, K22, \
 		 K32, K33, K34, K35, K25, K26, K36, K37, \
 		 K27, K60, K50, K51, K41, K42, K43, K53, \

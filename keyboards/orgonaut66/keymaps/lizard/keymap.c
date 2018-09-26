@@ -91,21 +91,19 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 	  
 	case MACRO_1:
 	  if (record->event.pressed) {
-		SEND_STRING("cd /mnt/c/Users/EJ/Documents");
-		register_code(KC_ENT);
+		SEND_STRING("cd /mnt/c/Users/EJ/Documents"SS_TAP(X_ENTER));
+
 		return false; 
 	  }
 	case MACRO_2:
 	  if (record->event.pressed) {
 		  //navigate to folder
-		SEND_STRING("cd /mnt/c/Users/EJ/Documents/Github/qmk_lizard");
-		register_code(KC_ENT);
-		unregister_code(KC_ENT);
+		SEND_STRING("cd /mnt/c/Users/EJ/Documents/Github/qmk_lizard" SS_TAP(X_ENTER) );
+
 		
 		//send command to compile
-		SEND_STRING("make orgonaut66:lizard");
-		register_code(KC_ENT);
-		unregister_code(KC_ENT);
+		SEND_STRING("make orgonaut66:lizard" SS_TAP(X_ENTER));
+
 		
 		return false; 
 	  }
