@@ -119,10 +119,41 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  
 };
 
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+	switch(keycode){
+
+		case LOWER:
+			if (record->event.pressed){
+				layer_on(_LOWER);
+				update_tri_layer(_LOWER, _RAISE, _FN);
+			} else {
+				layer_off(_LOWER);
+				update_tri_layer(_LOWER, _RAISE, _FN);
+			}
+			return false;
+			break;
+
+		case RAISE:
+			if (record->event.pressed) {
+				layer_on(_RAISE);
+				update_tri_layer(_LOWER, _RAISE, _FN);
+			} else {
+				layer_off(_RAISE);
+				update_tri_layer(_LOWER, _RAISE, _FN);
+			}
+			return false;
+			break;
+
+
+	}
+	return true;
+}
+
+/*
 uint32_t layer_state_set_user(uint32_t state){
 	return update_tri_layer_state(state, _LOWER, _RAISE, _FN);
-	
 }
+*/
 
 const uint16_t PROGMEM fn_actions[]={
 
