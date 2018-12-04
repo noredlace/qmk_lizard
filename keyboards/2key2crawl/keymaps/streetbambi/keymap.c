@@ -2,7 +2,6 @@
 
 #define STAR 0x2605
 
-//potential layers for tri state
 enum crawl_layers {
   _QWERTY,
   _LOWER,
@@ -11,7 +10,6 @@ enum crawl_layers {
   _ADJUST
 };
 
-//keycodes and macros
 enum crawl_keycodes {
   QWERTY = SAFE_RANGE,
   LOWER,
@@ -28,22 +26,18 @@ enum crawl_keycodes {
   COPY,
   NEWWIN,
   PASTE,
-  NEWPWIN,
-  SELECT,
-  REFRESH
+  NEWPWIN
 };
 
-
-//keymap layout in a similar position to the physical position
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 	[_QWERTY] = KEYMAP(
-    KC_ESC, NEWTAB, KC_UP, UNDO, KC_DEL,
+    ESC, NEWTAB, KC_UP, UNDO, KC_DEL,
     SCREENCAP, KC_LEFT, KC_DOWN, KC_RGHT, LOWER, KC_ENT),
 
 	[_LOWER] = KEYMAP(
-    RESET, SELECT, COPY, PASTE, CTRLALTDEL,
-    QUITAPP, REFRESH, NEWWIN, NEWPWIN, KC_TRNS, KC_ENT)
+    RESET, CTRLALTDEL, COPY, PASTE, KC_BSPC,
+    QUITAPP, OPENAPP, NEWWIN, NEWPWIN, KC_TRNS, KC_ENT)
 
 	/*
 	//no need for raise/adjust layers yet
@@ -171,27 +165,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 				register_code(KC_N);
 				unregister_code(KC_N);
 				unregister_code(KC_LGUI);
-				unregister_code(KC_LSFT);
-			}
-			return false;
-			break;
-		case SELECT:
-			if(record->event.pressed){
-				register_code(KC_LGUI);
-				register_code(KC_A);
-				unregister_code(KC_A);
-				unregister_code(KC_LGUI);
-			}
-			return false;
-			break;
-		case REFRESH:
-			if(record->event.pressed){
-				register_code(KC_LGUI);
 				register_code(KC_LSFT);
-				register_code(KC_R);
-				unregister_code(KC_R);
-				unregister_code(KC_LSFT);
-				unregister_code(KC_LGUI);
 			}
 			return false;
 			break;
