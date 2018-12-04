@@ -1,4 +1,5 @@
 #include QMK_KEYBOARD_H
+#include <print.h>
 
 enum crawl_layers {
   _QWERTY,
@@ -22,21 +23,21 @@ enum crawl_keycodes {
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 	[_QWERTY] = KEYMAP(
-    KC_1, KC_2, KC_3, KC_4, KC_5,
+    KC_1, KC_2, KC_3, KC_4, RESET,
     KC_Q, LOWER, KC_SPACE, RAISE, KC_0, KC_ENT),
 
 	[_LOWER] = KEYMAP(
-    KC_1, KC_2, KC_3, KC_4, KC_5,
-    KC_L, KC_TRNS, KC_ENT, KC_TRNS, KC_0, KC_ENT),
+    KC_1, KC_2, KC_3, KC_4, RESET,
+    KC_L, KC_TRNS, KC_0, RAISE, KC_0, KC_ENT),
 
 	[_RAISE] = KEYMAP(
-    KC_1, KC_2, KC_3, KC_4, KC_5,
-    KC_R, KC_TRNS, KC_BSPC, KC_TRNS, KC_0, KC_ENT),
+    KC_1, KC_2, KC_3, KC_4, RESET,
+    KC_R, LOWER, KC_BSPC, KC_TRNS, KC_0, KC_ENT),
 
 	[_ADJUST] = KEYMAP(
-    KC_1, KC_2, KC_3, KC_4, KC_5,
+    KC_1, KC_2, KC_3, KC_4, RESET,
     KC_A, KC_TRNS, KC_BSPC, KC_TRNS, KC_0, RESET)
-
+	
 };
 
 void matrix_init_user(void) {
@@ -78,7 +79,9 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 }
 
 void encoder_update_user(int8_t index, bool clockwise) {
+	print("encode\n");
   if (index == 0) {
+	
     if (clockwise) {
       register_code(KC_VOLU);
       unregister_code(KC_VOLU);
