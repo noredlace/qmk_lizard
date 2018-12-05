@@ -16,7 +16,6 @@
  */
 
 #include "encoder.h"
-#include <print.h>
 
 #ifndef ENCODER_RESOLUTION
   #define ENCODER_RESOLUTION 4
@@ -44,8 +43,6 @@ void encoder_update_kb(int8_t index, bool clockwise) {
 }
 
 void encoder_init(void) {
-	
-	print("setting up");
   for (int i = 0; i < NUMBER_OF_ENCODERS; i++) {
     setPinInputHigh(encoders_pad_a[i]);
     setPinInputHigh(encoders_pad_b[i]);
@@ -58,10 +55,10 @@ void encoder_read(void) {
   for (int i = 0; i < NUMBER_OF_ENCODERS; i++) {
     uint8_t aState = readPin(encoders_pad_a[i]);
     uint8_t bState = readPin(encoders_pad_b[i]);
-	printf("A=%d B=%d\n",aState,bState);
-	if (bState == 2){
-		bState = 1;
-	}
+	
+	if(bState == 2){
+        bState = 1;
+    }
     if (encoder_state[i] != aState){
       if (bState != aState){
         encoder_update_kb(i, CLOCKWISE);
