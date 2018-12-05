@@ -63,7 +63,8 @@ void matrix_init_user(void) {
   debug_config.keyboard = 1;
   debug_config.enable = 1;
   
-  set_unicode_input_mode(UC_WINC);
+  //set aside for emoticon implementation later
+  //set_unicode_input_mode(UC_WINC);
 }
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
@@ -215,13 +216,15 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 void encoder_update_user(int8_t index, bool clockwise) {
   if (index == 0) {
     if (clockwise) {
-      register_code(KC_VOLU);
-      unregister_code(KC_VOLU);
+      register_code(KC_PGUP);
+      unregister_code(KC_PGUP);
     } else {
-      register_code(KC_VOLD);
-      unregister_code(KC_VOLD);
+      register_code(KC_PGDOWN);
+      unregister_code(KC_PGDOWN);
     }
   }
+  
+  
 }
 
 
