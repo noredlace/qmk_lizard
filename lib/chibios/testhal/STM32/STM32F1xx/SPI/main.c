@@ -24,7 +24,6 @@ static const SPIConfig hs_spicfg = {
   NULL,
   GPIOA,
   GPIOA_SPI1NSS,
-  0,
   0
 };
 
@@ -35,8 +34,7 @@ static const SPIConfig ls_spicfg = {
   NULL,
   GPIOA,
   GPIOA_SPI1NSS,
-  SPI_CR1_BR_2 | SPI_CR1_BR_1,
-  0
+  SPI_CR1_BR_2 | SPI_CR1_BR_1
 };
 
 /*

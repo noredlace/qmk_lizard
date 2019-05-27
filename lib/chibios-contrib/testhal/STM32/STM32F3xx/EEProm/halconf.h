@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@
  * @{
  */
 
-#ifndef HALCONF_H
-#define HALCONF_H
+#ifndef _HALCONF_H_
+#define _HALCONF_H_
 
 #include "mcuconf.h"
 
@@ -167,7 +167,7 @@
  * @brief   Enables the WDG subsystem.
  */
 #if !defined(HAL_USE_WDG) || defined(__DOXYGEN__)
-#define HAL_USE_WDG                 FALSE
+#define HAL_USE_WDG                 TRUE
 #endif
 
 /*===========================================================================*/
@@ -382,6 +382,6 @@
 
 #include "halconf_community.h"
 
-#endif /* HALCONF_H */
+#endif /* _HALCONF_H_ */
 
 /** @} */

@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
-              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 */
 
 #include "hal.h"
+#include "hal_usbh.h"
 
 #if HAL_USBH_USE_FTDI
 
@@ -26,6 +27,9 @@
 #include <string.h>
 #include "usbh/dev/ftdi.h"
 #include "usbh/internal.h"
+
+//#pragma GCC optimize("Og")
+
 
 #if USBHFTDI_DEBUG_ENABLE_TRACE
 #define udbgf(f, ...)  usbDbgPrintf(f, ##__VA_ARGS__)
@@ -59,25 +63,22 @@
 #define uerr(f, ...)   do {} while(0)
 #endif
 
-static void _ftdip_object_init(USBHFTDIPortDriver *ftdipp);
 
 /*===========================================================================*/
 /* USB Class driver loader for FTDI								 		 	 */
 /*===========================================================================*/
 USBHFTDIDriver USBHFTDID[HAL_USBHFTDI_MAX_INSTANCES];
 
-static void _ftdi_init(void);
 static usbh_baseclassdriver_t *_ftdi_load(usbh_device_t *dev, const uint8_t *descriptor, uint16_t rem);
 static void _ftdi_unload(usbh_baseclassdriver_t *drv);
 
 static const usbh_classdriver_vmt_t class_driver_vmt = {
-	_ftdi_init,
 	_ftdi_load,
 	_ftdi_unload
 };
 
 const usbh_classdriverinfo_t usbhftdiClassDriverInfo = {
-	"FTDI", &class_driver_vmt
+	0xff, 0xff, 0xff, "FTDI", &class_driver_vmt
 };
 
 static USBHFTDIPortDriver *_find_port(void) {
@@ -93,8 +94,10 @@ static usbh_baseclassdriver_t *_ftdi_load(usbh_device_t *dev, const uint8_t *des
 	int i;
 	USBHFTDIDriver *ftdip;
 
-	if (_usbh_match_vid_pid(dev, 0x0403, -1) != HAL_SUCCESS)
+	if (dev->devDesc.idVendor != 0x0403) {
+		uerr("FTDI: Unrecognized VID");
 		return NULL;
+	}
 
 	switch (dev->devDesc.idProduct) {
 	case 0x6001:
@@ -102,18 +105,17 @@ static usbh_baseclassdriver_t *_ftdi_load(usbh_device_t *dev, const uint8_t *des
 	case 0x6011:
 	case 0x6014:
 	case 0x6015:
-	case 0xE2E6:
 		break;
 	default:
 		uerr("FTDI: Unrecognized PID");
 		return NULL;
 	}
 
-	if (_usbh_match_descriptor(descriptor, rem, USBH_DT_INTERFACE,
-			0xff, 0xff, 0xff) != HAL_SUCCESS)
+	if ((rem < descriptor[0]) || (descriptor[1] != USBH_DT_INTERFACE))
 		return NULL;
 
-	if (((const usbh_interface_descriptor_t *)descriptor)->bInterfaceNumber != 0) {
+	const usbh_interface_descriptor_t * const ifdesc = (const usbh_interface_descriptor_t * const)descriptor;
+	if (ifdesc->bInterfaceNumber != 0) {
 		uwarn("FTDI: Will allocate driver along with IF #0");
 	}
 
@@ -209,7 +211,7 @@ alloc_ok:
 
 }
 
-static void _stopS(USBHFTDIPortDriver *ftdipp);
+static void _stop(USBHFTDIPortDriver *ftdipp);
 static void _ftdi_unload(usbh_baseclassdriver_t *drv) {
 	osalDbgCheck(drv != NULL);
 	USBHFTDIDriver *const ftdip = (USBHFTDIDriver *)drv;
@@ -217,9 +219,7 @@ static void _ftdi_unload(usbh_baseclassdriver_t *drv) {
 
 	osalMutexLock(&ftdip->mtx);
 	while (ftdipp) {
-		osalSysLock();
-		_stopS(ftdipp);
-		osalSysUnlock();
+		_stop(ftdipp);
 		ftdipp = ftdipp->next;
 	}
 
@@ -227,7 +227,7 @@ static void _ftdi_unload(usbh_baseclassdriver_t *drv) {
 	osalSysLock();
 	while (ftdipp) {
 		USBHFTDIPortDriver *next = ftdipp->next;
-		_ftdip_object_init(ftdipp);
+		usbhftdipObjectInit(ftdipp);
 		ftdipp = next;
 	}
 	osalSysUnlock();
@@ -314,17 +314,17 @@ static usbh_urbstatus_t _ftdi_port_control(USBHFTDIPortDriver *ftdipp,
 		uint8_t *buff) {
 
 	static const uint8_t bmRequestType[] = {
-		USBH_REQTYPE_TYPE_VENDOR | USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_RECIP_DEVICE, //0 FTDI_COMMAND_RESET
-		USBH_REQTYPE_TYPE_VENDOR | USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_RECIP_DEVICE, //1 FTDI_COMMAND_MODEMCTRL
-		USBH_REQTYPE_TYPE_VENDOR | USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_RECIP_DEVICE, //2 FTDI_COMMAND_SETFLOW
-		USBH_REQTYPE_TYPE_VENDOR | USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_RECIP_DEVICE, //3 FTDI_COMMAND_SETBAUD
-		USBH_REQTYPE_TYPE_VENDOR | USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_RECIP_DEVICE, //4 FTDI_COMMAND_SETDATA
+		USBH_REQTYPE_VENDOR | USBH_REQTYPE_OUT | USBH_REQTYPE_DEVICE, //0 FTDI_COMMAND_RESET
+		USBH_REQTYPE_VENDOR | USBH_REQTYPE_OUT | USBH_REQTYPE_DEVICE, //1 FTDI_COMMAND_MODEMCTRL
+		USBH_REQTYPE_VENDOR | USBH_REQTYPE_OUT | USBH_REQTYPE_DEVICE, //2 FTDI_COMMAND_SETFLOW
+		USBH_REQTYPE_VENDOR | USBH_REQTYPE_OUT | USBH_REQTYPE_DEVICE, //3 FTDI_COMMAND_SETBAUD
+		USBH_REQTYPE_VENDOR | USBH_REQTYPE_OUT | USBH_REQTYPE_DEVICE, //4 FTDI_COMMAND_SETDATA
 	};
 
 	osalDbgCheck(bRequest < sizeof_array(bmRequestType));
 	osalDbgCheck(bRequest != 1);
 
-	USBH_DEFINE_BUFFER(const usbh_control_request_t req) = {
+	const USBH_DEFINE_BUFFER(usbh_control_request_t, req) = {
 			bmRequestType[bRequest],
 			bRequest,
 			wValue,
@@ -387,8 +387,8 @@ static usbh_urbstatus_t _set_baudrate(USBHFTDIPortDriver *ftdipp, uint32_t baudr
 	if (ftdipp->ftdip->dev->basicConfigDesc.bNumInterfaces > 1)
 		wIndex = (wIndex << 8) | (ftdipp->ifnum + 1);
 
-	USBH_DEFINE_BUFFER(const usbh_control_request_t req) = {
-		USBH_REQTYPE_TYPE_VENDOR | USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_RECIP_DEVICE,
+	const USBH_DEFINE_BUFFER(usbh_control_request_t, req) = {
+		USBH_REQTYPE_VENDOR | USBH_REQTYPE_OUT | USBH_REQTYPE_DEVICE,
 		FTDI_COMMAND_SETBAUD,
 		wValue,
 		wIndex,
@@ -415,7 +415,7 @@ static void _out_cb(usbh_urb_t *urb) {
 		return;
 	case USBH_URBSTATUS_DISCONNECTED:
 		uwarn("FTDI: URB OUT disconnected");
-		chThdDequeueAllI(&ftdipp->oq_waiting, Q_RESET);
+		chThdDequeueNextI(&ftdipp->oq_waiting, Q_RESET);
 		return;
 	default:
 		uerrf("FTDI: URB OUT status unexpected = %d", urb->status);
@@ -430,15 +430,15 @@ static size_t _write_timeout(USBHFTDIPortDriver *ftdipp, const uint8_t *bp,
 	chDbgCheck(n > 0U);
 
 	size_t w = 0;
-	osalSysLock();
+	chSysLock();
 	while (true) {
 		if (ftdipp->state != USBHFTDIP_STATE_READY) {
-			osalSysUnlock();
+			chSysUnlock();
 			return w;
 		}
 		while (usbhURBIsBusy(&ftdipp->oq_urb)) {
 			if (chThdEnqueueTimeoutS(&ftdipp->oq_waiting, timeout) != Q_OK) {
-				osalSysUnlock();
+				chSysUnlock();
 				return w;
 			}
 		}
@@ -446,30 +446,30 @@ static size_t _write_timeout(USBHFTDIPortDriver *ftdipp, const uint8_t *bp,
 		*ftdipp->oq_ptr++ = *bp++;
 		if (--ftdipp->oq_counter == 0) {
 			_submitOutI(ftdipp, 64);
-			osalOsRescheduleS();
+			chSchRescheduleS();
 		}
-		osalSysUnlock(); /* Gives a preemption chance in a controlled point.*/
+		chSysUnlock(); /* Gives a preemption chance in a controlled point.*/
 
 		w++;
 		if (--n == 0U)
 			return w;
 
-		osalSysLock();
+		chSysLock();
 	}
 }
 
 static msg_t _put_timeout(USBHFTDIPortDriver *ftdipp, uint8_t b, systime_t timeout) {
 
-	osalSysLock();
+	chSysLock();
 	if (ftdipp->state != USBHFTDIP_STATE_READY) {
-		osalSysUnlock();
+		chSysUnlock();
 		return Q_RESET;
 	}
 
 	while (usbhURBIsBusy(&ftdipp->oq_urb)) {
 		msg_t msg = chThdEnqueueTimeoutS(&ftdipp->oq_waiting, timeout);
 		if (msg < Q_OK) {
-			osalSysUnlock();
+			chSysUnlock();
 			return msg;
 		}
 	}
@@ -477,9 +477,9 @@ static msg_t _put_timeout(USBHFTDIPortDriver *ftdipp, uint8_t b, systime_t timeo
 	*ftdipp->oq_ptr++ = b;
 	if (--ftdipp->oq_counter == 0) {
 		_submitOutI(ftdipp, 64);
-		osalOsRescheduleS();
+		chSchRescheduleS();
 	}
-	osalSysUnlock();
+	chSysUnlock();
 	return Q_OK;
 }
 
@@ -516,12 +516,12 @@ static void _in_cb(usbh_urb_t *urb) {
 			udbgf("FTDI: URB IN no data, status=%02x %02x",
 					((uint8_t *)urb->buff)[0],
 					((uint8_t *)urb->buff)[1]);
-		//	return;
+			return;
 		}
 		break;
 	case USBH_URBSTATUS_DISCONNECTED:
 		uwarn("FTDI: URB IN disconnected");
-		chThdDequeueAllI(&ftdipp->iq_waiting, Q_RESET);
+		chThdDequeueNextI(&ftdipp->iq_waiting, Q_RESET);
 		return;
 	default:
 		uerrf("FTDI: URB IN status unexpected = %d", urb->status);
@@ -536,41 +536,41 @@ static size_t _read_timeout(USBHFTDIPortDriver *ftdipp, uint8_t *bp,
 
 	chDbgCheck(n > 0U);
 
-	osalSysLock();
+	chSysLock();
 	while (true) {
 		if (ftdipp->state != USBHFTDIP_STATE_READY) {
-			osalSysUnlock();
+			chSysUnlock();
 			return r;
 		}
 		while (ftdipp->iq_counter == 0) {
 			if (!usbhURBIsBusy(&ftdipp->iq_urb))
 				_submitInI(ftdipp);
 			if (chThdEnqueueTimeoutS(&ftdipp->iq_waiting, timeout) != Q_OK) {
-				osalSysUnlock();
+				chSysUnlock();
 				return r;
 			}
 		}
 		*bp++ = *ftdipp->iq_ptr++;
 		if (--ftdipp->iq_counter == 0) {
 			_submitInI(ftdipp);
-			osalOsRescheduleS();
+			chSchRescheduleS();
 		}
-		osalSysUnlock();
+		chSysUnlock();
 
 		r++;
 		if (--n == 0U)
 			return r;
 
-		osalSysLock();
+		chSysLock();
 	}
 }
 
 static msg_t _get_timeout(USBHFTDIPortDriver *ftdipp, systime_t timeout) {
 	uint8_t b;
 
-	osalSysLock();
+	chSysLock();
 	if (ftdipp->state != USBHFTDIP_STATE_READY) {
-		osalSysUnlock();
+		chSysUnlock();
 		return Q_RESET;
 	}
 	while (ftdipp->iq_counter == 0) {
@@ -578,16 +578,16 @@ static msg_t _get_timeout(USBHFTDIPortDriver *ftdipp, systime_t timeout) {
 			_submitInI(ftdipp);
 		msg_t msg = chThdEnqueueTimeoutS(&ftdipp->iq_waiting, timeout);
 		if (msg < Q_OK) {
-			osalSysUnlock();
+			chSysUnlock();
 			return msg;
 		}
 	}
 	b = *ftdipp->iq_ptr++;
 	if (--ftdipp->iq_counter == 0) {
 		_submitInI(ftdipp);
-		osalOsRescheduleS();
+		chSchRescheduleS();
 	}
-	osalSysUnlock();
+	chSysUnlock();
 
 	return (msg_t)b;
 }
@@ -602,7 +602,7 @@ static size_t _read(USBHFTDIPortDriver *ftdipp, uint8_t *bp, size_t n) {
 
 static void _vt(void *p) {
 	USBHFTDIPortDriver *const ftdipp = (USBHFTDIPortDriver *)p;
-	osalSysLockFromISR();
+	chSysLockFromISR();
 	uint32_t len = ftdipp->oq_ptr - ftdipp->oq_buff;
 	if (len && !usbhURBIsBusy(&ftdipp->oq_urb)) {
 		_submitOutI(ftdipp, len);
@@ -611,7 +611,7 @@ static void _vt(void *p) {
 		_submitInI(ftdipp);
 	}
 	chVTSetI(&ftdipp->vt, MS2ST(16), _vt, ftdipp);
-	osalSysUnlockFromISR();
+	chSysUnlockFromISR();
 }
 
 static const struct FTDIPortDriverVMT async_channel_vmt = {
@@ -626,27 +626,29 @@ static const struct FTDIPortDriverVMT async_channel_vmt = {
 };
 
 
-static void _stopS(USBHFTDIPortDriver *ftdipp) {
-	if (ftdipp->state != USBHFTDIP_STATE_READY)
-		return;
+static void _stop(USBHFTDIPortDriver *ftdipp) {
+	osalSysLock();
 	chVTResetI(&ftdipp->vt);
 	usbhEPCloseS(&ftdipp->epin);
 	usbhEPCloseS(&ftdipp->epout);
 	chThdDequeueAllI(&ftdipp->iq_waiting, Q_RESET);
 	chThdDequeueAllI(&ftdipp->oq_waiting, Q_RESET);
-	ftdipp->state = USBHFTDIP_STATE_ACTIVE;
 	osalOsRescheduleS();
+	ftdipp->state = USBHFTDIP_STATE_ACTIVE;
+	osalSysUnlock();
 }
 
 void usbhftdipStop(USBHFTDIPortDriver *ftdipp) {
 	osalDbgCheck((ftdipp->state == USBHFTDIP_STATE_ACTIVE)
 			|| (ftdipp->state == USBHFTDIP_STATE_READY));
 
-	osalSysLock();
-	chMtxLockS(&ftdipp->ftdip->mtx);
-	_stopS(ftdipp);
-	chMtxUnlockS(&ftdipp->ftdip->mtx);
-	osalSysUnlock();
+	if (ftdipp->state == USBHFTDIP_STATE_ACTIVE) {
+		return;
+	}
+
+	osalMutexLock(&ftdipp->ftdip->mtx);
+	_stop(ftdipp);
+	osalMutexUnlock(&ftdipp->ftdip->mtx);
 }
 
 void usbhftdipStart(USBHFTDIPortDriver *ftdipp, const USBHFTDIPortConfig *config) {
@@ -687,7 +689,9 @@ void usbhftdipStart(USBHFTDIPortDriver *ftdipp, const USBHFTDIPortConfig *config
 	ftdipp->iq_counter = 0;
 	ftdipp->iq_ptr = ftdipp->iq_buff;
 	usbhEPOpen(&ftdipp->epin);
-	usbhURBSubmit(&ftdipp->iq_urb);
+	osalSysLock();
+	usbhURBSubmitI(&ftdipp->iq_urb);
+	osalSysUnlock();
 
 	chVTObjectInit(&ftdipp->vt);
 	chVTSet(&ftdipp->vt, MS2ST(16), _vt, ftdipp);
@@ -696,28 +700,18 @@ void usbhftdipStart(USBHFTDIPortDriver *ftdipp, const USBHFTDIPortConfig *config
 	osalMutexUnlock(&ftdipp->ftdip->mtx);
 }
 
-static void _ftdi_object_init(USBHFTDIDriver *ftdip) {
+void usbhftdiObjectInit(USBHFTDIDriver *ftdip) {
 	osalDbgCheck(ftdip != NULL);
 	memset(ftdip, 0, sizeof(*ftdip));
 	ftdip->info = &usbhftdiClassDriverInfo;
 	osalMutexObjectInit(&ftdip->mtx);
 }
 
-static void _ftdip_object_init(USBHFTDIPortDriver *ftdipp) {
+void usbhftdipObjectInit(USBHFTDIPortDriver *ftdipp) {
 	osalDbgCheck(ftdipp != NULL);
 	memset(ftdipp, 0, sizeof(*ftdipp));
 	ftdipp->vmt = &async_channel_vmt;
 	ftdipp->state = USBHFTDIP_STATE_STOP;
-}
-
-static void _ftdi_init(void) {
-	uint8_t i;
-	for (i = 0; i < HAL_USBHFTDI_MAX_INSTANCES; i++) {
-		_ftdi_object_init(&USBHFTDID[i]);
-	}
-	for (i = 0; i < HAL_USBHFTDI_MAX_PORTS; i++) {
-		_ftdip_object_init(&FTDIPD[i]);
-	}
 }
 
 #endif

@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
-              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 */
 
 #include "hal.h"
+#include "hal_usbh.h"
+#include "usbh/internal.h"
 
 #if HAL_USBH_USE_HUB
 
@@ -25,7 +27,6 @@
 
 #include <string.h>
 #include "usbh/dev/hub.h"
-#include "usbh/internal.h"
 
 #if USBHHUB_DEBUG_ENABLE_TRACE
 #define udbgf(f, ...)  usbDbgPrintf(f, ##__VA_ARGS__)
@@ -61,19 +62,16 @@
 
 
 USBHHubDriver USBHHUBD[HAL_USBHHUB_MAX_INSTANCES];
-static usbh_port_t USBHPorts[HAL_USBHHUB_MAX_PORTS];
+usbh_port_t USBHPorts[HAL_USBHHUB_MAX_PORTS];
 
-static void _hub_init(void);
-static usbh_baseclassdriver_t *_hub_load(usbh_device_t *dev, const uint8_t *descriptor, uint16_t rem);
-static void _hub_unload(usbh_baseclassdriver_t *drv);
+static usbh_baseclassdriver_t *hub_load(usbh_device_t *dev, const uint8_t *descriptor, uint16_t rem);
+static void hub_unload(usbh_baseclassdriver_t *drv);
 static const usbh_classdriver_vmt_t usbhhubClassDriverVMT = {
-	_hub_init,
-	_hub_load,
-	_hub_unload
+	hub_load,
+	hub_unload
 };
-
 const usbh_classdriverinfo_t usbhhubClassDriverInfo = {
-	"HUB", &usbhhubClassDriverVMT
+	0x09, 0x00, -1, "HUB", &usbhhubClassDriverVMT
 };
 
 
@@ -107,7 +105,7 @@ static void _urb_complete(usbh_urb_t *urb) {
 	case USBH_URBSTATUS_TIMEOUT:
 		/* the device NAKed */
 		udbg("HUB: no info");
-		//hubdp->statuschange = 0;
+		hubdp->statuschange = 0;
 		break;
 	case USBH_URBSTATUS_OK: {
 		uint8_t len = hubdp->hubDesc.bNbrPorts / 8 + 1;
@@ -140,14 +138,16 @@ static void _urb_complete(usbh_urb_t *urb) {
 	usbhURBSubmitI(urb);
 }
 
-static usbh_baseclassdriver_t *_hub_load(usbh_device_t *dev,
+static usbh_baseclassdriver_t *hub_load(usbh_device_t *dev,
 		const uint8_t *descriptor, uint16_t rem) {
 	int i;
 
 	USBHHubDriver *hubdp;
 
-	if (_usbh_match_descriptor(descriptor, rem, USBH_DT_DEVICE,
-			0x09, 0x00, 0x00) != HAL_SUCCESS)
+	if ((rem < descriptor[0]) || (descriptor[1] != USBH_DT_DEVICE))
+		return NULL;
+
+	if (dev->devDesc.bDeviceProtocol != 0)
 		return NULL;
 
 	generic_iterator_t iep, icfg;
@@ -159,10 +159,12 @@ static usbh_baseclassdriver_t *_hub_load(usbh_device_t *dev,
 	if_iter_init(&iif, &icfg);
 	if (!iif.valid)
 		return NULL;
-
-	if (_usbh_match_descriptor(iif.curr, iif.rem, USBH_DT_INTERFACE,
-			0x09, 0x00, 0x00) != HAL_SUCCESS)
+	const usbh_interface_descriptor_t *const ifdesc = if_get(&iif);
+	if ((ifdesc->bInterfaceClass != 0x09)
+		|| (ifdesc->bInterfaceSubClass != 0x00)
+		|| (ifdesc->bInterfaceProtocol != 0x00)) {
 		return NULL;
+	}
 
 	ep_iter_init(&iep, &iif);
 	if (!iep.valid)
@@ -197,7 +199,7 @@ alloc_ok:
 	/* read Hub descriptor */
 	uinfo("Read Hub descriptor");
 	if (usbhhubControlRequest(dev->host, hubdp,
-			USBH_REQTYPE_DIR_IN | USBH_REQTYPE_TYPE_CLASS | USBH_REQTYPE_RECIP_DEVICE,
+			USBH_REQTYPE_IN | USBH_REQTYPE_CLASS | USBH_REQTYPE_DEVICE,
 			USBH_REQ_GET_DESCRIPTOR,
 			(USBH_DT_HUB << 8), 0, sizeof(hubdp->hubDesc),
 			(uint8_t *)&hubdp->hubDesc) != USBH_URBSTATUS_OK) {
@@ -252,18 +254,22 @@ alloc_ok:
 			_urb_complete, hubdp, hubdp->scbuff,
 			(hubdesc->bNbrPorts + 8) / 8);
 
-	usbhURBSubmit(&hubdp->urb);
+	osalSysLock();
+	usbhURBSubmitI(&hubdp->urb);
+	osalOsRescheduleS();
+	osalSysUnlock();
 
-	hubdp->dev = NULL;
 	return (usbh_baseclassdriver_t *)hubdp;
 }
 
-static void _hub_unload(usbh_baseclassdriver_t *drv) {
+static void hub_unload(usbh_baseclassdriver_t *drv) {
 	osalDbgCheck(drv != NULL);
 	USBHHubDriver *const hubdp = (USBHHubDriver *)drv;
 
 	/* close the status change endpoint (this cancels ongoing URBs) */
-	usbhEPClose(&hubdp->epint);
+	osalSysLock();
+	usbhEPCloseS(&hubdp->epint);
+	osalSysUnlock();
 
 	/* de-alloc ports and unload drivers */
 	usbh_port_t *port = hubdp->ports;
@@ -278,23 +284,14 @@ static void _hub_unload(usbh_baseclassdriver_t *drv) {
 
 }
 
-static void _object_init(USBHHubDriver *hubdp) {
+void usbhhubObjectInit(USBHHubDriver *hubdp) {
 	osalDbgCheck(hubdp != NULL);
 	memset(hubdp, 0, sizeof(*hubdp));
 	hubdp->info = &usbhhubClassDriverInfo;
 }
-
-static void _hub_init(void) {
-	uint8_t i;
-	for (i = 0; i < HAL_USBHHUB_MAX_INSTANCES; i++) {
-		_object_init(&USBHHUBD[i]);
-	}
-}
-
 #else
 
 #if HAL_USE_USBH
-#include <string.h>
 void _usbhub_port_object_init(usbh_port_t *port, USBHDriver *usbh, uint8_t number) {
 	memset(port, 0, sizeof(*port));
 	port->number = number;

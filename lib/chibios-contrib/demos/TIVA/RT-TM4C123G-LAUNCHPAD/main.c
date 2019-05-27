@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2017 Marco Veeneman
+    Copyright (C) 2014..2016 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,8 +20,9 @@
 
 typedef struct led_config
 {
-  ioline_t line;
+  ioportid_t port;
   uint32_t sleep;
+  uint8_t  pin;
 } led_config_t;
 
 /*
@@ -35,11 +36,11 @@ static THD_FUNCTION(blinkLed, arg) {
 
   chRegSetThreadName("Blinker");
 
-  palSetLineMode(ledConfig->line, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(ledConfig->port, ledConfig->pin, PAL_MODE_OUTPUT_PUSHPULL);
 
   while (TRUE) {
     chThdSleepMilliseconds(ledConfig->sleep);
-    palToggleLine(ledConfig->line);
+    palTogglePad(ledConfig->port, ledConfig->pin);
   }
 }
 
@@ -61,43 +62,37 @@ int main(void)
   chSysInit();
 
   /* Configure RX and TX pins for UART0.*/
-  palSetLineMode(LINE_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
-  palSetLineMode(LINE_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOA, GPIOA_UART0_RX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
+  palSetPadMode(GPIOA, GPIOA_UART0_TX, PAL_MODE_INPUT | PAL_MODE_ALTERNATE(1));
 
   /* Start the serial driver with the default configuration.*/
   sdStart(&SD1, NULL);
 
-  if (!palReadLine(LINE_SW2)) {
+  if (!palReadPad(GPIOF, GPIOF_SW2)) {
     test_execute((BaseSequentialStream *)&SD1);
   }
 
-  ledRed.line    = LINE_LED_RED;
+  ledRed.port    = GPIOF;
+  ledRed.pin     = GPIOF_LED_RED;
   ledRed.sleep   = 100;
 
-  ledGreen.line  = LINE_LED_GREEN;
+  ledGreen.port  = GPIOF;
+  ledGreen.pin   = GPIOF_LED_GREEN;
   ledGreen.sleep = 101;
 
-  ledBlue.line   = LINE_LED_BLUE;
+  ledBlue.port   = GPIOF;
+  ledBlue.pin    = GPIOF_LED_BLUE;
   ledBlue.sleep  = 102;
 
   /* Creating the blinker threads.*/
-  chThdCreateStatic(waBlinkLedRed,
-                    sizeof(waBlinkLedRed),
-                    NORMALPRIO,
-                    blinkLed,
+  chThdCreateStatic(waBlinkLedRed, sizeof(waBlinkLedRed), NORMALPRIO, blinkLed,
                     &ledRed);
 
-  chThdCreateStatic(waBlinkLedGreen,
-                    sizeof(waBlinkLedGreen),
-                    NORMALPRIO,
-                    blinkLed,
-                    &ledGreen);
+  chThdCreateStatic(waBlinkLedGreen, sizeof(waBlinkLedGreen), NORMALPRIO,
+                    blinkLed, &ledGreen);
 
-  chThdCreateStatic(waBlinkLedBlue,
-                    sizeof(waBlinkLedBlue),
-                    NORMALPRIO,
-                    blinkLed,
-                    &ledBlue);
+  chThdCreateStatic(waBlinkLedBlue, sizeof(waBlinkLedBlue), NORMALPRIO,
+                    blinkLed, &ledBlue);
 
   /* Normal main() thread activity.*/
   while (TRUE) {

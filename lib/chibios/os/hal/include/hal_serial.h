@@ -40,7 +40,6 @@
 #define SD_OVERRUN_ERROR        (eventflags_t)128   /**< @brief Overflow.   */
 #define SD_NOISE_ERROR          (eventflags_t)256   /**< @brief Line noise. */
 #define SD_BREAK_DETECTED       (eventflags_t)512   /**< @brief LIN Break.  */
-#define SD_QUEUE_FULL_ERROR     (eventflags_t)1024  /**< @brief Queue full. */
 /** @} */
 
 /*===========================================================================*/
@@ -66,8 +65,6 @@
  *          buffers depending on the requirements of your application.
  * @note    The default is 16 bytes for both the transmission and receive
  *          buffers.
- * @note    This is a global setting and it can be overridden by low level
- *          driver specific settings.
  */
 #if !defined(SERIAL_BUFFERS_SIZE) || defined(__DOXYGEN__)
 #define SERIAL_BUFFERS_SIZE         16
@@ -271,12 +268,7 @@ struct SerialDriver {
 extern "C" {
 #endif
   void sdInit(void);
-#if !defined(SERIAL_ADVANCED_BUFFERING_SUPPORT) ||                          \
-    (SERIAL_ADVANCED_BUFFERING_SUPPORT == FALSE)
   void sdObjectInit(SerialDriver *sdp, qnotify_t inotify, qnotify_t onotify);
-#else
-  void sdObjectInit(SerialDriver *sdp);
-#endif
   void sdStart(SerialDriver *sdp, const SerialConfig *config);
   void sdStop(SerialDriver *sdp);
   void sdIncomingDataI(SerialDriver *sdp, uint8_t b);

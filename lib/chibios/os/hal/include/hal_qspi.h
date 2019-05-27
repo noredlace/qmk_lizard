@@ -35,43 +35,42 @@
  * @name    Transfer options
  * @{
  */
-#define QSPI_CFG_CMD_MASK                   (0xFFLU << 0LU)
-#define QSPI_CFG_CMD(n)                     ((n) << 0LU)
-#define QSPI_CFG_CMD_MODE_MASK              (3LU << 8LU)
-#define QSPI_CFG_CMD_MODE_NONE              (0LU << 8LU)
-#define QSPI_CFG_CMD_MODE_ONE_LINE          (1LU << 8LU)
-#define QSPI_CFG_CMD_MODE_TWO_LINES         (2LU << 8LU)
-#define QSPI_CFG_CMD_MODE_FOUR_LINES        (3LU << 8LU)
-#define QSPI_CFG_ADDR_MODE_MASK             (3LU << 10LU)
-#define QSPI_CFG_ADDR_MODE_NONE             (0LU << 10LU)
-#define QSPI_CFG_ADDR_MODE_ONE_LINE         (1LU << 10LU)
-#define QSPI_CFG_ADDR_MODE_TWO_LINES        (2LU << 10LU)
-#define QSPI_CFG_ADDR_MODE_FOUR_LINES       (3LU << 10LU)
-#define QSPI_CFG_ADDR_SIZE_MASK             (3LU << 12LU)
-#define QSPI_CFG_ADDR_SIZE_8                (0LU << 12LU)
-#define QSPI_CFG_ADDR_SIZE_16               (1LU << 12LU)
-#define QSPI_CFG_ADDR_SIZE_24               (2LU << 12LU)
-#define QSPI_CFG_ADDR_SIZE_32               (3LU << 12LU)
-#define QSPI_CFG_ALT_MODE_MASK              (3LU << 14LU)
-#define QSPI_CFG_ALT_MODE_NONE              (0LU << 14LU)
-#define QSPI_CFG_ALT_MODE_ONE_LINE          (1LU << 14LU)
-#define QSPI_CFG_ALT_MODE_TWO_LINES         (2LU << 14LU)
-#define QSPI_CFG_ALT_MODE_FOUR_LINES        (3LU << 14LU)
-#define QSPI_CFG_ALT_SIZE_MASK              (3LU << 16LU)
-#define QSPI_CFG_ALT_SIZE_8                 (0LU << 16LU)
-
-#define QSPI_CFG_ALT_SIZE_16                (1LU << 16LU)
-#define QSPI_CFG_ALT_SIZE_24                (2LU << 16LU)
-#define QSPI_CFG_ALT_SIZE_32                (3LU << 16LU)
-#define QSPI_CFG_DUMMY_CYCLES_MASK          (0x1FLU << 18LU)
-#define QSPI_CFG_DUMMY_CYCLES(n)            ((n) << 18LU)
-#define QSPI_CFG_DATA_MODE_MASK             (3LU << 24LU)
-#define QSPI_CFG_DATA_MODE_NONE             (0LU << 24LU)
-#define QSPI_CFG_DATA_MODE_ONE_LINE         (1LU << 24LU)
-#define QSPI_CFG_DATA_MODE_TWO_LINES        (2LU << 24LU)
-#define QSPI_CFG_DATA_MODE_FOUR_LINES       (3LU << 24LU)
-#define QSPI_CFG_SIOO                       (1LU << 28LU)
-#define QSPI_CFG_DDRM                       (1LU << 31LU)
+#define QSPI_CFG_CMD_MASK                   (0xFFU << 0U)
+#define QSPI_CFG_CMD(n)                     ((n) << 0U)
+#define QSPI_CFG_CMD_MODE_MASK              (3U << 8U)
+#define QSPI_CFG_CMD_MODE_NONE              (0U << 8U)
+#define QSPI_CFG_CMD_MODE_ONE_LINE          (1U << 8U)
+#define QSPI_CFG_CMD_MODE_TWO_LINES         (2U << 8U)
+#define QSPI_CFG_CMD_MODE_FOUR_LINES        (3U << 8U)
+#define QSPI_CFG_ADDR_MODE_MASK             (3U << 10U)
+#define QSPI_CFG_ADDR_MODE_NONE             (0U << 10U)
+#define QSPI_CFG_ADDR_MODE_ONE_LINE         (1U << 10U)
+#define QSPI_CFG_ADDR_MODE_TWO_LINES        (2U << 10U)
+#define QSPI_CFG_ADDR_MODE_FOUR_LINES       (3U << 10U)
+#define QSPI_CFG_ADDR_SIZE_MASK             (3U << 12U)
+#define QSPI_CFG_ADDR_SIZE_8                (0U << 12U)
+#define QSPI_CFG_ADDR_SIZE_16               (1U << 12U)
+#define QSPI_CFG_ADDR_SIZE_24               (2U << 12U)
+#define QSPI_CFG_ADDR_SIZE_32               (3U << 12U)
+#define QSPI_CFG_ALT_MODE_MASK              (3U << 14U)
+#define QSPI_CFG_ALT_MODE_NONE              (0U << 14U)
+#define QSPI_CFG_ALT_MODE_ONE_LINE          (1U << 14U)
+#define QSPI_CFG_ALT_MODE_TWO_LINES         (2U << 14U)
+#define QSPI_CFG_ALT_MODE_FOUR_LINES        (3U << 14U)
+#define QSPI_CFG_ALT_SIZE_MASK              (3U << 16U)
+#define QSPI_CFG_ALT_SIZE_8                 (0U << 16U)
+#define QSPI_CFG_ALT_SIZE_16                (1U << 16U)
+#define QSPI_CFG_ALT_SIZE_24                (2U << 16U)
+#define QSPI_CFG_ALT_SIZE_32                (3U << 16U)
+#define QSPI_CFG_DUMMY_CYCLES_MASK          (0x1FU << 18U)
+#define QSPI_CFG_DUMMY_CYCLES(n)            ((n) << 18U)
+#define QSPI_CFG_DATA_MODE_MASK             (3U << 24U)
+#define QSPI_CFG_DATA_MODE_NONE             (0U << 24U)
+#define QSPI_CFG_DATA_MODE_ONE_LINE         (1U << 24U)
+#define QSPI_CFG_DATA_MODE_TWO_LINES        (2U << 24U)
+#define QSPI_CFG_DATA_MODE_FOUR_LINES       (3U << 24U)
+#define QSPI_CFG_SIOO                       (1U << 28U)
+#define QSPI_CFG_DDRM                       (1U << 31U)
 /** @} */
 
 /*===========================================================================*/
@@ -115,8 +114,7 @@ typedef enum {
   QSPI_STOP = 1,                    /**< Stopped.                           */
   QSPI_READY = 2,                   /**< Ready.                             */
   QSPI_ACTIVE = 3,                  /**< Exchanging data.                   */
-  QSPI_COMPLETE = 4,                /**< Asynchronous operation complete.   */
-  QSPI_MEMMAP = 5                   /**< In memory mapped mode.             */
+  QSPI_COMPLETE = 4                 /**< Asynchronous operation complete.   */
 } qspistate_t;
 
 /**
@@ -129,10 +127,6 @@ typedef struct {
 } qspi_command_t;
 
 #include "hal_qspi_lld.h"
-
-#if !defined(QSPI_SUPPORTS_MEMMAP)
-#error "low level does not define QSPI_SUPPORTS_MEMMAP"
-#endif
 
 /*===========================================================================*/
 /* Driver macros.                                                            */
@@ -198,35 +192,6 @@ typedef struct {
   (qspip)->state = QSPI_ACTIVE;                                             \
   qspi_lld_receive(qspip, cmdp, n, rxbuf);                                  \
 }
-
-#if (QSPI_SUPPORTS_MEMMAP == TRUE) || defined(__DOXYGEN__)
-/**
- * @brief   Maps in memory space a QSPI flash device.
- * @pre     The memory flash device must be initialized appropriately
- *          before mapping it in memory space.
- *
- * @param[in] qspip     pointer to the @p QSPIDriver object
- * @param[in] cmdp      pointer to the command descriptor
- * @param[out] addrp    pointer to the memory start address of the mapped
- *                      flash or @p NULL
- *
- * @iclass
- */
-#define qspiMapFlashI(qspip, cmdp, addrp)                                   \
-  qspi_lld_map_flash(qspip, cmdp, addrp)
-
-/**
- * @brief   Maps in memory space a QSPI flash device.
- * @post    The memory flash device must be re-initialized for normal
- *          commands exchange.
- *
- * @param[in] qspip     pointer to the @p QSPIDriver object
- *
- * @iclass
- */
-#define qspiUnmapFlashI(qspip)                                              \
-  qspi_lld_unmap_flash(qspip)
-#endif /* QSPI_SUPPORTS_MEMMAP == TRUE */
 /** @} */
 
 /**
@@ -299,12 +264,6 @@ extern "C" {
                 size_t n, const uint8_t *txbuf);
   void qspiReceive(QSPIDriver *qspip, const qspi_command_t *cmdp,
                    size_t n, uint8_t *rxbuf);
-#endif
-#if QSPI_SUPPORTS_MEMMAP == TRUE
-void qspiMapFlash(QSPIDriver *qspip,
-                  const qspi_command_t *cmdp,
-                  uint8_t **addrp);
-void qspiUnmapFlash(QSPIDriver *qspip);
 #endif
 #if QSPI_USE_MUTUAL_EXCLUSION == TRUE
   void qspiAcquireBus(QSPIDriver *qspip);

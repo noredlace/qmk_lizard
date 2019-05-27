@@ -1,6 +1,6 @@
 /*
-    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
-              Copyright (C) 2015..2017 Diego Ismirlian, (dismirlian (at) google's mail)
+    ChibiOS - Copyright (C) 2006..2015 Giovanni Di Sirio
+              Copyright (C) 2015 Diego Ismirlian, TISA, (dismirlian (at) google's mail)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 
 #if HAL_USE_USBH
 
-#include "usbh/internal.h"
 #include "usbh/dev/hub.h"
+#include "usbh/internal.h"
 #include <string.h>
 
 #if USBH_DEBUG_ENABLE_TRACE
@@ -55,18 +55,21 @@
 #define uerr(f, ...)   do {} while(0)
 #endif
 
-static void _classdriver_process_device(usbh_device_t *dev);
-static bool _classdriver_load(usbh_device_t *dev, uint8_t *descbuff, uint16_t rem);
+#if STM32_USBH_USE_OTG1
+USBHDriver USBHD1;
+#endif
+#if STM32_USBH_USE_OTG2
+USBHDriver USBHD2;
+#endif
 
-#if HAL_USBH_USE_ADDITIONAL_CLASS_DRIVERS
-#include "usbh_additional_class_drivers.h"
-#ifndef HAL_USBH_ADDITIONAL_CLASS_DRIVERS
-#error "Must define HAL_USBH_ADDITIONAL_CLASS_DRIVERS"
-#endif
-#endif
+
+static void _classdriver_process_device(usbh_device_t *dev);
+static bool _classdriver_load(usbh_device_t *dev, uint8_t class,
+		uint8_t subclass, uint8_t protocol, uint8_t *descbuff, uint16_t rem);
+
 
 /*===========================================================================*/
-/* Checks.                                                                   */
+/* Checks.								                                     */
 /*===========================================================================*/
 
 static inline void _check_dev(usbh_device_t *dev) {
@@ -89,7 +92,7 @@ static inline void _check_urb(usbh_urb_t *urb) {
 }
 
 /*===========================================================================*/
-/* Main driver API.                                                          */
+/* Main driver API.						                                     */
 /*===========================================================================*/
 
 void usbhObjectInit(USBHDriver *usbh) {
@@ -103,6 +106,16 @@ void usbhObjectInit(USBHDriver *usbh) {
 #endif
 }
 
+void usbhInit(void) {
+#if HAL_USBH_USE_HUB
+	uint8_t i;
+	for (i = 0; i < HAL_USBHHUB_MAX_INSTANCES; i++) {
+		usbhhubObjectInit(&USBHHUBD[i]);
+	}
+#endif
+	usbh_lld_init();
+}
+
 void usbhStart(USBHDriver *usbh) {
 	usbDbgInit(usbh);
 
@@ -111,8 +124,10 @@ void usbhStart(USBHDriver *usbh) {
 				"invalid state");
 	usbh_lld_start(usbh);
 	usbh->status = USBH_STATUS_STARTED;
+	osalOsRescheduleS();
 	osalSysUnlock();
 }
+
 
 void usbhStop(USBHDriver *usbh) {
 	//TODO: implement
@@ -128,7 +143,7 @@ void usbhResume(USBHDriver *usbh) {
 }
 
 /*===========================================================================*/
-/* Endpoint API.                                                             */
+/* Endpoint API.						                                     */
 /*===========================================================================*/
 
 void usbhEPObjectInit(usbh_ep_t *ep, usbh_device_t *dev, const usbh_endpoint_descriptor_t *desc) {
@@ -166,28 +181,9 @@ static void _ep0_object_init(usbh_device_t *dev, uint16_t wMaxPacketSize) {
 	usbhEPSetName(&dev->ctrl, "DEV[CTRL]");
 }
 
-bool usbhEPReset(usbh_ep_t *ep) {
-	osalDbgCheck(ep != NULL);
-	osalDbgAssert((ep->status == USBH_EPSTATUS_OPEN) || (ep->status == USBH_EPSTATUS_HALTED), "invalid state");
-	osalDbgAssert(ep->type != USBH_EPTYPE_CTRL, "don't need to reset control endpoint");
-
-	usbh_urbstatus_t ret = usbhControlRequest(ep->device,
-			USBH_REQTYPE_STANDARDOUT(USBH_REQTYPE_RECIP_ENDPOINT),
-			USBH_REQ_CLEAR_FEATURE,
-			0, ep->address | (ep->in ? 0x80 : 0x00), 0, 0);
-
-	/* TODO: GET_STATUS to see if endpoint is still halted */
-	osalSysLock();
-	if ((ret == USBH_URBSTATUS_OK) && usbh_lld_ep_reset(ep)) {
-		osalSysUnlock();
-		return HAL_SUCCESS;
-	}
-	osalSysUnlock();
-	return HAL_FAILED;
-}
 
 /*===========================================================================*/
-/* URB API.                                                                  */
+/* URB API.				    	                                     		 */
 /*===========================================================================*/
 
 void usbhURBObjectInit(usbh_urb_t *urb, usbh_ep_t *ep, usbh_completion_cb callback,
@@ -223,7 +219,6 @@ void usbhURBObjectResetI(usbh_urb_t *urb) {
 	usbh_lld_urb_object_reset(urb);
 }
 
-/* usbhURBSubmitI may require a reschedule if called from a S-locked state */
 void usbhURBSubmitI(usbh_urb_t *urb) {
 	osalDbgCheckClassI();
 	_check_urb(urb);
@@ -233,8 +228,11 @@ void usbhURBSubmitI(usbh_urb_t *urb) {
 		_usbh_urb_completeI(urb, USBH_URBSTATUS_STALL);
 		return;
 	}
-	if ((ep->status != USBH_EPSTATUS_OPEN)
-		|| !(usbhDeviceGetPort(ep->device)->status & USBH_PORTSTATUS_ENABLE)) {
+	if (ep->status != USBH_EPSTATUS_OPEN) {
+		_usbh_urb_completeI(urb, USBH_URBSTATUS_DISCONNECTED);
+		return;
+	}
+	if (!(usbhDeviceGetPort(ep->device)->status & USBH_PORTSTATUS_ENABLE)) {
 		_usbh_urb_completeI(urb, USBH_URBSTATUS_DISCONNECTED);
 		return;
 	}
@@ -242,21 +240,28 @@ void usbhURBSubmitI(usbh_urb_t *urb) {
 	usbh_lld_urb_submit(urb);
 }
 
-/* _usbh_urb_abortI may require a reschedule if called from a S-locked state */
 bool _usbh_urb_abortI(usbh_urb_t *urb, usbh_urbstatus_t status) {
 	osalDbgCheckClassI();
 	_check_urb(urb);
-	osalDbgCheck(urb->status != USBH_URBSTATUS_UNINITIALIZED);
 
-	if (urb->status == USBH_URBSTATUS_PENDING) {
+	switch (urb->status) {
+/*	case USBH_URBSTATUS_UNINITIALIZED:
+ * 	case USBH_URBSTATUS_INITIALIZED:
+ *	case USBH_URBSTATUS_ERROR:
+ *	case USBH_URBSTATUS_TIMEOUT:
+ *	case USBH_URBSTATUS_CANCELLED:
+ *	case USBH_URBSTATUS_STALL:
+ *	case USBH_URBSTATUS_DISCONNECTED:
+ *	case USBH_URBSTATUS_OK: */
+	default:
+		/* already finished */
+		_usbh_urb_completeI(urb, status);
+		return TRUE;
+
+//	case USBH_URBSTATUS_QUEUED:
+	case USBH_URBSTATUS_PENDING:
 		return usbh_lld_urb_abort(urb, status);
 	}
-
-	/* already finished or never submitted:
-	 * USBH_URBSTATUS_INITIALIZED, USBH_URBSTATUS_ERROR, USBH_URBSTATUS_TIMEOUT,
-	 * USBH_URBSTATUS_CANCELLED, USBH_URBSTATUS_STALL, USBH_URBSTATUS_DISCONNECTED
-	 * USBH_URBSTATUS_OK */
-	return TRUE;
 }
 
 void _usbh_urb_abort_and_waitS(usbh_urb_t *urb, usbh_urbstatus_t status) {
@@ -266,16 +271,13 @@ void _usbh_urb_abort_and_waitS(usbh_urb_t *urb, usbh_urbstatus_t status) {
 	if (_usbh_urb_abortI(urb, status) == FALSE) {
 		uwarn("URB wasn't aborted immediately, suspend");
 		osalThreadSuspendS(&urb->abortingThread);
-		osalDbgAssert(urb->abortingThread == 0, "maybe we should uncomment the line below");
-		//urb->abortingThread = 0;
+		urb->abortingThread = 0;
 	} else {
-		/* This call is necessary because _usbh_urb_abortI may require a reschedule */
 		osalOsRescheduleS();
 	}
 	uwarn("URB aborted");
 }
 
-/* usbhURBCancelI may require a reschedule if called from a S-locked state */
 bool usbhURBCancelI(usbh_urb_t *urb) {
 	return _usbh_urb_abortI(urb, USBH_URBSTATUS_CANCELLED);
 }
@@ -285,14 +287,36 @@ void usbhURBCancelAndWaitS(usbh_urb_t *urb) {
 }
 
 msg_t usbhURBWaitTimeoutS(usbh_urb_t *urb, systime_t timeout) {
+	msg_t ret;
+
 	osalDbgCheckClassS();
 	_check_urb(urb);
-	if (urb->status == USBH_URBSTATUS_OK) {
-		return MSG_OK;
-	} else if (urb->status != USBH_URBSTATUS_PENDING) {
-		return MSG_RESET;
+
+	switch (urb->status) {
+	case USBH_URBSTATUS_INITIALIZED:
+	case USBH_URBSTATUS_PENDING:
+//	case USBH_URBSTATUS_QUEUED:
+		ret = osalThreadSuspendTimeoutS(&urb->waitingThread, timeout);
+		urb->waitingThread = 0;
+		break;
+
+	case USBH_URBSTATUS_OK:
+		ret = MSG_OK;
+		osalOsRescheduleS();
+		break;
+
+/*	case USBH_URBSTATUS_UNINITIALIZED:
+ *	case USBH_URBSTATUS_ERROR:
+ *	case USBH_URBSTATUS_TIMEOUT:
+ *	case USBH_URBSTATUS_CANCELLED:
+ *	case USBH_URBSTATUS_STALL:
+ *	case USBH_URBSTATUS_DISCONNECTED: */
+	default:
+		ret = MSG_RESET;
+		osalOsRescheduleS();
+		break;
 	}
-	return osalThreadSuspendTimeoutS(&urb->waitingThread, timeout);
+	return ret;
 }
 
 msg_t usbhURBSubmitAndWaitS(usbh_urb_t *urb, systime_t timeout) {
@@ -315,7 +339,6 @@ static inline msg_t _wakeup_message(usbh_urbstatus_t status) {
 	return MSG_RESET;
 }
 
-/* _usbh_urb_completeI may require a reschedule if called from a S-locked state */
 void _usbh_urb_completeI(usbh_urb_t *urb, usbh_urbstatus_t status) {
 	osalDbgCheckClassI();
 	_check_urb(urb);
@@ -327,7 +350,7 @@ void _usbh_urb_completeI(usbh_urb_t *urb, usbh_urbstatus_t status) {
 }
 
 /*===========================================================================*/
-/* Synchronous API.                                                          */
+/* Synchronous API.		    	                                     		 */
 /*===========================================================================*/
 
 usbh_urbstatus_t usbhBulkTransfer(usbh_ep_t *ep,
@@ -359,8 +382,7 @@ usbh_urbstatus_t usbhControlRequestExtended(usbh_device_t *dev,
 		uint32_t *actual_len,
 		systime_t timeout) {
 
-	if (!dev) return USBH_URBSTATUS_DISCONNECTED;
-
+	_check_dev(dev);
 	osalDbgCheck(req != NULL);
 
 	usbh_urb_t urb;
@@ -386,33 +408,41 @@ usbh_urbstatus_t usbhControlRequest(usbh_device_t *dev,
 		uint16_t wLength,
 		uint8_t *buff) {
 
-	USBH_DEFINE_BUFFER(const usbh_control_request_t req) = {
+	const USBH_DEFINE_BUFFER(usbh_control_request_t, req) = {
 			bmRequestType,
 			bRequest,
 			wValue,
 			wIndex,
 			wLength
 	};
-	return usbhControlRequestExtended(dev, &req, buff, NULL, HAL_USBH_CONTROL_REQUEST_DEFAULT_TIMEOUT);
+	return usbhControlRequestExtended(dev, &req, buff, NULL, MS2ST(1000));
 }
 
 /*===========================================================================*/
-/* Standard request helpers.                                                 */
+/* Standard request helpers.   	                                     		 */
 /*===========================================================================*/
+
+#define USBH_GET_DESCRIPTOR(type, value, index)	\
+	USBH_STANDARDIN(type, \
+	USBH_REQ_GET_DESCRIPTOR, \
+	value, \
+	index) \
+
+#define USBH_GETDEVICEDESCRIPTOR \
+	USBH_GET_DESCRIPTOR(USBH_REQTYPE_DEVICE, (USBH_DT_DEVICE << 8) | 0, 0)
+
+#define USBH_GETCONFIGURATIONDESCRIPTOR(index) \
+	USBH_GET_DESCRIPTOR(USBH_REQTYPE_DEVICE, (USBH_DT_CONFIG << 8) | index, 0)
+
+#define USBH_GETSTRINGDESCRIPTOR(index, langID) \
+	USBH_GET_DESCRIPTOR(USBH_REQTYPE_DEVICE, (USBH_DT_STRING << 8) | index, langID)
 
 bool usbhStdReqGetDeviceDescriptor(usbh_device_t *dev,
 		uint16_t wLength,
 		uint8_t *buf) {
 	usbh_device_descriptor_t *desc;
-
-	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDIN(USBH_REQTYPE_RECIP_DEVICE),
-			USBH_REQ_GET_DESCRIPTOR,
-			(USBH_DT_DEVICE << 8) | 0, 0,
-			wLength, buf);
-
+	usbh_urbstatus_t ret = usbhControlRequest(dev, USBH_GETDEVICEDESCRIPTOR, wLength, buf);
 	desc = (usbh_device_descriptor_t *)buf;
-
 	if ((ret != USBH_URBSTATUS_OK)
 			|| (desc->bLength != USBH_DT_DEVICE_SIZE)
 			|| (desc->bDescriptorType != USBH_DT_DEVICE)) {
@@ -425,15 +455,8 @@ bool usbhStdReqGetConfigurationDescriptor(usbh_device_t *dev,
 		uint8_t index,
 		uint16_t wLength,
 		uint8_t *buf) {
-
-	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDIN(USBH_REQTYPE_RECIP_DEVICE),
-			USBH_REQ_GET_DESCRIPTOR,
-			(USBH_DT_CONFIG << 8) | index, 0,
-			wLength, buf);
-
+	usbh_urbstatus_t ret = usbhControlRequest(dev, USBH_GETCONFIGURATIONDESCRIPTOR(index), wLength, buf);
 	usbh_config_descriptor_t *const desc = (usbh_config_descriptor_t *)buf;
-
 	if ((ret != USBH_URBSTATUS_OK)
 			|| (desc->bLength < USBH_DT_CONFIG_SIZE)
 			|| (desc->bDescriptorType != USBH_DT_CONFIG)) {
@@ -450,13 +473,7 @@ bool usbhStdReqGetStringDescriptor(usbh_device_t *dev,
 
 	osalDbgAssert(wLength >= USBH_DT_STRING_SIZE, "wrong size");
 	usbh_string_descriptor_t *desc = (usbh_string_descriptor_t *)buf;
-
-	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDIN(USBH_REQTYPE_RECIP_DEVICE),
-			USBH_REQ_GET_DESCRIPTOR,
-			(USBH_DT_STRING << 8) | index, langID,
-			wLength, buf);
-
+	usbh_urbstatus_t ret = usbhControlRequest(dev, USBH_GETSTRINGDESCRIPTOR(index, langID), wLength, buf);
 	if ((ret != USBH_URBSTATUS_OK)
 			|| (desc->bLength < USBH_DT_STRING_SIZE)
 			|| (desc->bDescriptorType != USBH_DT_STRING)) {
@@ -465,17 +482,25 @@ bool usbhStdReqGetStringDescriptor(usbh_device_t *dev,
 	return HAL_SUCCESS;
 }
 
+
+
+#define USBH_SET_INTERFACE(interface, alt)	\
+	USBH_STANDARDOUT(USBH_REQTYPE_INTERFACE, \
+	USBH_REQ_SET_INTERFACE, \
+	alt, \
+	interface) \
+
+#define USBH_GET_INTERFACE(interface)	\
+	USBH_STANDARDIN(USBH_REQTYPE_INTERFACE, \
+	USBH_REQ_GET_INTERFACE, \
+	0, \
+	interface) \
+
 bool usbhStdReqSetInterface(usbh_device_t *dev,
 		uint8_t bInterfaceNumber,
 		uint8_t bAlternateSetting) {
 
-	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDOUT(USBH_REQTYPE_RECIP_INTERFACE),
-			USBH_REQ_SET_INTERFACE,
-			bAlternateSetting,
-			bInterfaceNumber,
-			0, NULL);
-
+	usbh_urbstatus_t ret = usbhControlRequest(dev, USBH_SET_INTERFACE(bInterfaceNumber, bAlternateSetting), 0, NULL);
 	if (ret != USBH_URBSTATUS_OK)
 		return HAL_FAILED;
 
@@ -486,15 +511,9 @@ bool usbhStdReqGetInterface(usbh_device_t *dev,
 		uint8_t bInterfaceNumber,
 		uint8_t *bAlternateSetting) {
 
-	USBH_DEFINE_BUFFER(uint8_t alt);
+	USBH_DEFINE_BUFFER(uint8_t, alt);
 
-	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDIN(USBH_REQTYPE_RECIP_INTERFACE),
-			USBH_REQ_GET_INTERFACE,
-			0,
-			bInterfaceNumber,
-			1, &alt);
-
+	usbh_urbstatus_t ret = usbhControlRequest(dev, USBH_GET_INTERFACE(bInterfaceNumber), 1, &alt);
 	if (ret != USBH_URBSTATUS_OK)
 		return HAL_FAILED;
 
@@ -504,7 +523,7 @@ bool usbhStdReqGetInterface(usbh_device_t *dev,
 
 
 /*===========================================================================*/
-/* Device-related functions.                                                 */
+/* Device-related functions.   	                                     		 */
 /*===========================================================================*/
 
 static uint8_t _find_address(USBHDriver *host) {
@@ -539,8 +558,7 @@ static void _device_initialize(usbh_device_t *dev, usbh_devspeed_t speed) {
 
 static bool _device_setaddress(usbh_device_t *dev, uint8_t address) {
 	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDOUT(USBH_REQTYPE_RECIP_DEVICE),
-			USBH_REQ_SET_ADDRESS, address, 0,
+			USBH_STANDARDOUT(USBH_REQTYPE_DEVICE, USBH_REQ_SET_ADDRESS, address, 0),
 			0,
 			0);
 	if (ret != USBH_URBSTATUS_OK)
@@ -593,12 +611,22 @@ static void _device_free_full_cfgdesc(usbh_device_t *dev) {
 	}
 }
 
+
+#define USBH_SET_CONFIGURATION(type, value, index)	\
+	USBH_STANDARDOUT(type, \
+	USBH_REQ_SET_CONFIGURATION, \
+	value, \
+	index) \
+
+#define USBH_SETDEVICECONFIGURATION(index) \
+	USBH_SET_CONFIGURATION(USBH_REQTYPE_DEVICE, index, 0)
+
+
 static bool _device_set_configuration(usbh_device_t *dev, uint8_t configuration) {
 	usbh_urbstatus_t ret = usbhControlRequest(dev,
-			USBH_REQTYPE_STANDARDOUT(USBH_REQTYPE_RECIP_DEVICE),
-			USBH_REQ_SET_CONFIGURATION,
-			configuration,
-			0, 0, 0);
+			USBH_SETDEVICECONFIGURATION(configuration),
+			0,
+			0);
 	if (ret != USBH_URBSTATUS_OK)
 		return HAL_FAILED;
 	return HAL_SUCCESS;
@@ -692,7 +720,7 @@ static bool _device_enumerate(usbh_device_t *dev) {
 
 #if USBH_DEBUG_ENABLE && USBH_DEBUG_ENABLE_INFO
 void usbhDevicePrintInfo(usbh_device_t *dev) {
-	USBH_DEFINE_BUFFER(char str[64]);
+	USBH_DEFINE_BUFFER(char, str[64]);
 	usbh_device_descriptor_t *const desc = &dev->devDesc;
 
 	uinfo("----- Device info -----");
@@ -814,8 +842,11 @@ bool usbhDeviceReadString(usbh_device_t *dev, char *dest, uint8_t size,
 	return HAL_SUCCESS;
 }
 
+
+
+
 /*===========================================================================*/
-/* Port processing functions.                                                */
+/* Port processing functions.  	                                     		 */
 /*===========================================================================*/
 
 static void _port_connected(usbh_port_t *port);
@@ -825,7 +856,7 @@ static void _port_reset(usbh_port_t *port) {
 #if HAL_USBH_USE_HUB
 			port->hub,
 #endif
-			USBH_REQTYPE_DIR_OUT | USBH_REQTYPE_TYPE_CLASS | USBH_REQTYPE_RECIP_OTHER,
+			USBH_REQTYPE_OUT | USBH_REQTYPE_CLASS | USBH_REQTYPE_OTHER,
 			USBH_REQ_SET_FEATURE,
 			USBH_PORT_FEAT_RESET,
 			port->number,
@@ -839,7 +870,7 @@ static void _port_update_status(usbh_port_t *port) {
 #if HAL_USBH_USE_HUB
 			port->hub,
 #endif
-			USBH_REQTYPE_DIR_IN | USBH_REQTYPE_TYPE_CLASS | USBH_REQTYPE_RECIP_OTHER,
+			USBH_REQTYPE_IN | USBH_REQTYPE_CLASS | USBH_REQTYPE_OTHER,
 			USBH_REQ_GET_STATUS,
 			0,
 			port->number,
@@ -856,47 +887,45 @@ static void _port_process_status_change(usbh_port_t *port) {
 	_port_update_status(port);
 
 	if (port->c_status & USBH_PORTSTATUS_C_CONNECTION) {
+		/* port connected status changed */
 		port->c_status &= ~USBH_PORTSTATUS_C_CONNECTION;
 		usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_CONNECTION);
-
-		if (port->device.status != USBH_DEVSTATUS_DISCONNECTED) {
-			if (!(port->status & USBH_PORTSTATUS_CONNECTION)) {
+		if ((port->status & (USBH_PORTSTATUS_CONNECTION | USBH_PORTSTATUS_ENABLE))
+				== USBH_PORTSTATUS_CONNECTION) {
+			if (port->device.status != USBH_DEVSTATUS_DISCONNECTED) {
 				_usbh_port_disconnected(port);
 			}
-		}
-	}
 
-	if (port->device.status == USBH_DEVSTATUS_DISCONNECTED) {
-		if (port->status & USBH_PORTSTATUS_CONNECTION) {
+			/* connected, disabled */
 			_port_connected(port);
+		} else {
+			/* disconnected */
+			_usbh_port_disconnected(port);
 		}
 	}
 
 	if (port->c_status & USBH_PORTSTATUS_C_RESET) {
 		port->c_status &= ~USBH_PORTSTATUS_C_RESET;
 		usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_RESET);
-		udbgf("Port %d: reset=%d", port->number, port->status & USBH_PORTSTATUS_RESET ? 1 : 0);
 	}
 
 	if (port->c_status & USBH_PORTSTATUS_C_ENABLE) {
 		port->c_status &= ~USBH_PORTSTATUS_C_ENABLE;
 		usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_ENABLE);
-		udbgf("Port %d: enable=%d", port->number, port->status & USBH_PORTSTATUS_ENABLE ? 1 : 0);
 	}
 
 	if (port->c_status & USBH_PORTSTATUS_C_OVERCURRENT) {
 		port->c_status &= ~USBH_PORTSTATUS_C_OVERCURRENT;
 		usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_OVERCURRENT);
-		uwarnf("Port %d: overcurrent=%d", port->number, port->status & USBH_PORTSTATUS_OVERCURRENT ? 1 : 0);
 	}
 
 	if (port->c_status & USBH_PORTSTATUS_C_SUSPEND) {
 		port->c_status &= ~USBH_PORTSTATUS_C_SUSPEND;
 		usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_SUSPEND);
-		uinfof("Port %d: suspend=%d", port->number, port->status & USBH_PORTSTATUS_SUSPEND ? 1 : 0);
 	}
 
 }
+
 
 static void _port_connected(usbh_port_t *port) {
 	/* connected */
@@ -905,10 +934,11 @@ static void _port_connected(usbh_port_t *port) {
 	uint8_t i;
 	uint8_t retries;
 	usbh_devspeed_t speed;
-	USBH_DEFINE_BUFFER(usbh_string_descriptor_t strdesc);
+	USBH_DEFINE_BUFFER(usbh_string_descriptor_t, strdesc);
+
+	uinfof("Port %d connected, wait debounce...", port->number);
 
 	port->device.status = USBH_DEVSTATUS_ATTACHED;
-	uinfof("Port %d: attached, wait debounce...", port->number);
 
 	/* wait for attach de-bounce */
 	osalThreadSleepMilliseconds(HAL_USBH_PORT_DEBOUNCE_TIME);
@@ -916,26 +946,16 @@ static void _port_connected(usbh_port_t *port) {
 	/* check disconnection */
 	_port_update_status(port);
 	if (port->c_status & USBH_PORTSTATUS_C_CONNECTION) {
-		port->c_status &= ~USBH_PORTSTATUS_C_CONNECTION;
-		usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_CONNECTION);
-		uwarnf("Port %d: connection state changed; abort #1", port->number);
+		/* connection state changed; abort */
 		goto abort;
 	}
 
-	/* make sure that the device is still connected */
-	if ((port->status & USBH_PORTSTATUS_CONNECTION) == 0) {
-		uwarnf("Port %d: device is disconnected", port->number);
-		goto abort;
-	}
-
-	uinfof("Port %d: connected", port->number);
 	port->device.status = USBH_DEVSTATUS_CONNECTED;
 	retries = 3;
 
 reset:
 	for (i = 0; i < 3; i++) {
-		uinfof("Port %d: Try reset...", port->number);
-		/* TODO: check that port is actually disabled */
+		uinfo("Try reset...");
 		port->c_status &= ~(USBH_PORTSTATUS_C_RESET | USBH_PORTSTATUS_C_ENABLE);
 		_port_reset(port);
 		osalThreadSleepMilliseconds(20);	/* give it some time to reset (min. 10ms) */
@@ -944,12 +964,8 @@ reset:
 			_port_update_status(port);
 
 			/* check for disconnection */
-			if (port->c_status & USBH_PORTSTATUS_C_CONNECTION) {
-				port->c_status &= ~USBH_PORTSTATUS_C_CONNECTION;
-				usbhhubClearFeaturePort(port, USBH_PORT_FEAT_C_CONNECTION);
-				uwarnf("Port %d: connection state changed; abort #2", port->number);
+			if (port->c_status & USBH_PORTSTATUS_C_CONNECTION)
 				goto abort;
-			}
 
 			/* check for reset completion */
 			if (port->c_status & USBH_PORTSTATUS_C_RESET) {
@@ -963,10 +979,7 @@ reset:
 			}
 
 			/* check for timeout */
-			if (osalOsGetSystemTimeX() - start > HAL_USBH_PORT_RESET_TIMEOUT) {
-				uwarnf("Port %d: reset timeout", port->number);
-				break;
-			}
+			if (osalOsGetSystemTimeX() - start > HAL_USBH_PORT_RESET_TIMEOUT) break;
 		}
 	}
 
@@ -974,7 +987,8 @@ reset:
 	goto abort;
 
 reset_success:
-	uinfof("Port %d: Reset OK, recovery...", port->number);
+
+	uinfo("Reset OK, recovery...");
 
 	/* reset recovery */
 	osalThreadSleepMilliseconds(100);
@@ -991,22 +1005,19 @@ reset_success:
 	usbhEPOpen(&port->device.ctrl);
 
 	/* device with default address (0), try enumeration */
-	if (_device_enumerate(&port->device) != HAL_SUCCESS) {
+	if (_device_enumerate(&port->device)) {
 		/* enumeration failed */
 		usbhEPClose(&port->device.ctrl);
 
-		if (!--retries) {
-			uwarnf("Port %d: enumeration failed; abort", port->number);
+		if (!--retries)
 			goto abort;
-		}
 
 		/* retry reset & enumeration */
-		uwarnf("Port %d: enumeration failed; retry reset & enumeration", port->number);
 		goto reset;
 	}
 
 	/* load the default language ID */
-	uinfof("Port %d: Loading langID0...", port->number);
+	uinfo("Loading langID0...");
 	if (!usbhStdReqGetStringDescriptor(&port->device, 0, 0,
 			USBH_DT_STRING_SIZE, (uint8_t *)&strdesc)
 		&& (strdesc.bLength >= 4)
@@ -1014,12 +1025,12 @@ reset_success:
 			4, (uint8_t *)&strdesc)) {
 
 		port->device.langID0 = strdesc.wData[0];
-		uinfof("Port %d: langID0=%04x", port->number, port->device.langID0);
+		uinfof("langID0=%04x", port->device.langID0);
 	}
 
 	/* check if the device has only one configuration */
 	if (port->device.devDesc.bNumConfigurations == 1) {
-		uinfof("Port %d: device has only one configuration", port->number);
+		uinfo("Device has only one configuration");
 		_device_configure(&port->device, 0);
 	}
 
@@ -1027,7 +1038,7 @@ reset_success:
 	return;
 
 abort:
-	uerrf("Port %d: abort", port->number);
+	uerr("Abort");
 	port->device.status = USBH_DEVSTATUS_DISCONNECTED;
 }
 
@@ -1035,14 +1046,14 @@ void _usbh_port_disconnected(usbh_port_t *port) {
 	if (port->device.status == USBH_DEVSTATUS_DISCONNECTED)
 		return;
 
-	uinfof("Port %d: disconnected", port->number);
+	uinfo("Port disconnected");
 
 	/* unload drivers */
 	while (port->device.drivers) {
 		usbh_baseclassdriver_t *drv = port->device.drivers;
 
 		/* unload */
-		uinfof("Port %d: unload driver %s", port->number, drv->info->name);
+		uinfof("Unload driver %s", drv->info->name);
 		drv->info->vmt->unload(drv);
 
 		/* unlink */
@@ -1051,7 +1062,9 @@ void _usbh_port_disconnected(usbh_port_t *port) {
 	}
 
 	/* close control endpoint */
-	usbhEPClose(&port->device.ctrl);
+	osalSysLock();
+	usbhEPCloseS(&port->device.ctrl);
+	osalSysUnlock();
 
 	/* free address */
 	if (port->device.address)
@@ -1063,8 +1076,9 @@ void _usbh_port_disconnected(usbh_port_t *port) {
 }
 
 
+
 /*===========================================================================*/
-/* Hub processing functions.                                                 */
+/* Hub processing functions.  	                                     		 */
 /*===========================================================================*/
 
 #if HAL_USBH_USE_HUB
@@ -1072,7 +1086,7 @@ static void _hub_update_status(USBHDriver *host, USBHHubDriver *hub) {
 	uint32_t stat;
 	if (usbhhubControlRequest(host,
 			hub,
-			USBH_REQTYPE_DIR_IN | USBH_REQTYPE_TYPE_CLASS | USBH_REQTYPE_RECIP_DEVICE,
+			USBH_REQTYPE_IN | USBH_REQTYPE_CLASS | USBH_REQTYPE_DEVICE,
 			USBH_REQ_GET_STATUS,
 			0,
 			0,
@@ -1090,7 +1104,7 @@ static void _hub_process_status_change(USBHDriver *host, USBHHubDriver *hub) {
 	uinfo("Hub status change. GET_STATUS.");
 	_hub_update_status(host, hub);
 
-		if (hub->c_status & USBH_HUBSTATUS_C_HUB_LOCAL_POWER) {
+	if (hub->c_status & USBH_HUBSTATUS_C_HUB_LOCAL_POWER) {
 		hub->c_status &= ~USBH_HUBSTATUS_C_HUB_LOCAL_POWER;
 		uinfo("Clear USBH_HUB_FEAT_C_HUB_LOCAL_POWER");
 		usbhhubClearFeatureHub(host, hub, USBH_HUB_FEAT_C_HUB_LOCAL_POWER);
@@ -1108,6 +1122,7 @@ static uint32_t _hub_get_status_change_bitmap(USBHDriver *host, USBHHubDriver *h
 		osalSysLock();
 		uint32_t ret = hub->statuschange;
 		hub->statuschange = 0;
+		osalOsRescheduleS();
 		osalSysUnlock();
 		return ret;
 	}
@@ -1161,7 +1176,7 @@ static void _hub_process(USBHDriver *host) {
 #endif
 
 /*===========================================================================*/
-/* Main processing loop (enumeration, loading/unloading drivers, etc).       */
+/* Main processing loop (enumeration, loading/unloading drivers, etc). 		 */
 /*===========================================================================*/
 void usbhMainLoop(USBHDriver *usbh) {
 
@@ -1173,8 +1188,8 @@ void usbhMainLoop(USBHDriver *usbh) {
 	_hub_process(usbh, NULL);
 
 	/* process connected hubs */
-	USBHHubDriver *hub, *temp;
-    list_for_each_entry_safe(hub, USBHHubDriver, temp, &usbh->hubs, node) {
+	USBHHubDriver *hub;
+    list_for_each_entry(hub, USBHHubDriver, &usbh->hubs, node) {
 		_hub_process(usbh, hub);
 	}
 #else
@@ -1183,78 +1198,75 @@ void usbhMainLoop(USBHDriver *usbh) {
 #endif
 }
 
+
 /*===========================================================================*/
-/* Class driver loader.                                                      */
+/* IAD class driver.											 		 	 */
 /*===========================================================================*/
+#if HAL_USBH_USE_IAD
+static usbh_baseclassdriver_t *iad_load(usbh_device_t *dev, const uint8_t *descriptor, uint16_t rem);
+static void iad_unload(usbh_baseclassdriver_t *drv);
+static const usbh_classdriver_vmt_t usbhiadClassDriverVMT = {
+	iad_load,
+	iad_unload
+};
+static const usbh_classdriverinfo_t usbhiadClassDriverInfo = {
+	0xef, 0x02, 0x01, "IAD", &usbhiadClassDriverVMT
+};
 
-bool _usbh_match_vid_pid(usbh_device_t *dev, int32_t vid, int32_t pid) {
-	if (((vid < 0) || (dev->devDesc.idVendor == vid))
-		&& ((pid < 0) || (dev->devDesc.idProduct == pid)))
-		return HAL_SUCCESS;
+static usbh_baseclassdriver_t *iad_load(usbh_device_t *dev,
+		const uint8_t *descriptor, uint16_t rem) {
+	(void)rem;
 
-	return HAL_FAILED;
-}
+	if (descriptor[1] != USBH_DT_DEVICE)
+		return 0;
 
-bool _usbh_match_descriptor(const uint8_t *descriptor, uint16_t rem,
-		int16_t type, int16_t _class, int16_t subclass, int16_t protocol) {
+	uinfo("Load a driver for each IF collection.");
 
-	int16_t dclass, dsubclass, dprotocol;
+	generic_iterator_t icfg;
+	if_iterator_t iif;
+	const usbh_ia_descriptor_t *last_iad = 0;
 
-	if ((rem < descriptor[0]) || (rem < 2))
-		return HAL_FAILED;
-
-	uint8_t dtype = descriptor[1];
-
-	if ((type >= 0) && (type != dtype))
-		return HAL_FAILED;
-
-	switch (dtype) {
-	case USBH_DT_DEVICE: {
-		if (rem < USBH_DT_DEVICE_SIZE)
-			return HAL_FAILED;
-		const usbh_device_descriptor_t *const desc = (const usbh_device_descriptor_t *)descriptor;
-		dclass = desc->bDeviceClass;
-		dsubclass = desc->bDeviceSubClass;
-		dprotocol = desc->bDeviceProtocol;
-	}	break;
-	case USBH_DT_INTERFACE: {
-		if (rem < USBH_DT_INTERFACE_SIZE)
-			return HAL_FAILED;
-		const usbh_interface_descriptor_t *const desc = (const usbh_interface_descriptor_t *)descriptor;
-		dclass = desc->bInterfaceClass;
-		dsubclass = desc->bInterfaceSubClass;
-		dprotocol = desc->bInterfaceProtocol;
-	}	break;
-	case USBH_DT_INTERFACE_ASSOCIATION: {
-		if (rem < USBH_DT_INTERFACE_ASSOCIATION_SIZE)
-			return HAL_FAILED;
-		const usbh_ia_descriptor_t *const desc = (const usbh_ia_descriptor_t *)descriptor;
-		dclass = desc->bFunctionClass;
-		dsubclass = desc->bFunctionSubClass;
-		dprotocol = desc->bFunctionProtocol;
-	}	break;
-	default:
-		return HAL_FAILED;
+	cfg_iter_init(&icfg, dev->fullConfigurationDescriptor,
+			dev->basicConfigDesc.wTotalLength);
+	if (!icfg.valid) {
+		uerr("Invalid configuration descriptor.");
+		return 0;
 	}
 
-	if (((_class < 0) || (_class == dclass))
-		&& ((subclass < 0) || (subclass == dsubclass))
-		&& ((protocol < 0) || (protocol == dprotocol)))
-		return HAL_SUCCESS;
+	for (if_iter_init(&iif, &icfg); iif.valid; if_iter_next(&iif)) {
+		if (iif.iad && (iif.iad != last_iad)) {
+			last_iad = iif.iad;
+			if (_classdriver_load(dev, iif.iad->bFunctionClass,
+					iif.iad->bFunctionSubClass,
+					iif.iad->bFunctionProtocol,
+					(uint8_t *)iif.iad,
+					(uint8_t *)iif.curr - (uint8_t *)iif.iad + iif.rem) != HAL_SUCCESS) {
+				uwarnf("No drivers found for IF collection #%d:%d",
+						iif.iad->bFirstInterface,
+						iif.iad->bFirstInterface + iif.iad->bInterfaceCount - 1);
+			}
+		}
+	}
 
-	return HAL_FAILED;
+	return 0;
 }
 
-static const usbh_classdriverinfo_t *usbh_classdrivers_lookup[] = {
-#if HAL_USBH_USE_ADDITIONAL_CLASS_DRIVERS
-	/* user-defined out of tree class drivers */
-	HAL_USBH_ADDITIONAL_CLASS_DRIVERS
+static void iad_unload(usbh_baseclassdriver_t *drv) {
+	(void)drv;
+}
 #endif
+
+
+/*===========================================================================*/
+/* Class driver loader.											 		 	 */
+/*===========================================================================*/
+
+static const usbh_classdriverinfo_t *usbh_classdrivers_lookup[] = {
 #if HAL_USBH_USE_FTDI
 	&usbhftdiClassDriverInfo,
 #endif
-#if HAL_USBH_USE_HUB
-	&usbhhubClassDriverInfo,
+#if HAL_USBH_USE_IAD
+	&usbhiadClassDriverInfo,
 #endif
 #if HAL_USBH_USE_UVC
 	&usbhuvcClassDriverInfo,
@@ -1262,39 +1274,48 @@ static const usbh_classdriverinfo_t *usbh_classdrivers_lookup[] = {
 #if HAL_USBH_USE_MSD
 	&usbhmsdClassDriverInfo,
 #endif
-#if HAL_USBH_USE_HID
-	&usbhhidClassDriverInfo,
-#endif
-#if HAL_USBH_USE_UVC
-	&usbhuvcClassDriverInfo,
-#endif
-#if HAL_USBH_USE_AOA
-	&usbhaoaClassDriverInfo,	/* Leave always last */
+#if HAL_USBH_USE_HUB
+	&usbhhubClassDriverInfo
 #endif
 };
 
-static bool _classdriver_load(usbh_device_t *dev, uint8_t *descbuff, uint16_t rem) {
+static bool _classdriver_load(usbh_device_t *dev, uint8_t class,
+		uint8_t subclass, uint8_t protocol, uint8_t *descbuff, uint16_t rem) {
 	uint8_t i;
 	usbh_baseclassdriver_t *drv = NULL;
 	for (i = 0; i < sizeof_array(usbh_classdrivers_lookup); i++) {
 		const usbh_classdriverinfo_t *const info = usbh_classdrivers_lookup[i];
+		if (class == 0xff) {
+			/* vendor specific */
+			if (info->class == 0xff) {
+				uinfof("Try load vendor-specific driver %s", info->name);
+				drv = info->vmt->load(dev, descbuff, rem);
+				if (drv != NULL)
+					goto success;
+			}
+		} else if ((info->class < 0) || ((info->class == class)
+			&& ((info->subclass < 0) || ((info->subclass == subclass)
+			&& ((info->protocol < 0) || (info->protocol == protocol)))))) {
+			uinfof("Try load driver %s", info->name);
+			drv = info->vmt->load(dev, descbuff, rem);
 
-		uinfof("Try load driver %s", info->name);
-		drv = info->vmt->load(dev, descbuff, rem);
+#if HAL_USBH_USE_IAD
+			/* special case: */
+			if (info == &usbhiadClassDriverInfo)
+				return HAL_SUCCESS;
+#endif
 
-		if (drv != NULL)
-			goto success;
+			if (drv != NULL)
+				goto success;
+		}
 	}
-
 	return HAL_FAILED;
 
 success:
 	/* Link this driver to the device */
-	if (!drv->dev) {
-		drv->next = dev->drivers;
-		dev->drivers = drv;
-		drv->dev = dev;
-	}
+	drv->next = dev->drivers;
+	dev->drivers = drv;
+	drv->dev = dev;
 	return HAL_SUCCESS;
 }
 
@@ -1326,16 +1347,13 @@ static void _classdriver_process_device(usbh_device_t *dev) {
 	usbhDevicePrintConfiguration(dev->fullConfigurationDescriptor,
 			dev->basicConfigDesc.wTotalLength);
 
-#if HAL_USBH_USE_IAD
-	if (dev->devDesc.bDeviceClass == 0xef
-			&& dev->devDesc.bDeviceSubClass == 0x02
-			&& dev->devDesc.bDeviceProtocol == 0x01) {
-
-		uinfo("Load a driver for each IF collection.");
+	if (devdesc->bDeviceClass == 0) {
+		/* each interface defines its own device class/subclass/protocol */
+		uinfo("Load a driver for each IF.");
 
 		generic_iterator_t icfg;
 		if_iterator_t iif;
-		const usbh_ia_descriptor_t *last_iad = 0;
+		uint8_t last_if = 0xff;
 
 		cfg_iter_init(&icfg, dev->fullConfigurationDescriptor,
 				dev->basicConfigDesc.wTotalLength);
@@ -1345,49 +1363,24 @@ static void _classdriver_process_device(usbh_device_t *dev) {
 		}
 
 		for (if_iter_init(&iif, &icfg); iif.valid; if_iter_next(&iif)) {
-			if (iif.iad && (iif.iad != last_iad)) {
-				last_iad = iif.iad;
-				if (_classdriver_load(dev,
-						(uint8_t *)iif.iad,
-						(uint8_t *)iif.curr - (uint8_t *)iif.iad + iif.rem) != HAL_SUCCESS) {
-					uwarnf("No drivers found for IF collection #%d:%d",
-							iif.iad->bFirstInterface,
-							iif.iad->bFirstInterface + iif.iad->bInterfaceCount - 1);
+			const usbh_interface_descriptor_t *const ifdesc = if_get(&iif);
+			if (ifdesc->bInterfaceNumber != last_if) {
+				last_if = ifdesc->bInterfaceNumber;
+				if (_classdriver_load(dev, ifdesc->bInterfaceClass,
+						ifdesc->bInterfaceSubClass,
+						ifdesc->bInterfaceProtocol,
+						(uint8_t *)ifdesc, iif.rem) != HAL_SUCCESS) {
+					uwarnf("No drivers found for IF #%d", ifdesc->bInterfaceNumber);
 				}
 			}
 		}
 
-	} else
-#endif
-	if (_classdriver_load(dev, (uint8_t *)devdesc, USBH_DT_DEVICE_SIZE) != HAL_SUCCESS) {
-		uinfo("No drivers found for device.");
-
-		if (devdesc->bDeviceClass == 0) {
-			/* each interface defines its own device class/subclass/protocol */
-			uinfo("Try load a driver for each IF.");
-
-			generic_iterator_t icfg;
-			if_iterator_t iif;
-			uint8_t last_if = 0xff;
-
-			cfg_iter_init(&icfg, dev->fullConfigurationDescriptor,
-					dev->basicConfigDesc.wTotalLength);
-			if (!icfg.valid) {
-				uerr("Invalid configuration descriptor.");
-				goto exit;
-			}
-
-			for (if_iter_init(&iif, &icfg); iif.valid; if_iter_next(&iif)) {
-				const usbh_interface_descriptor_t *const ifdesc = if_get(&iif);
-				if (ifdesc->bInterfaceNumber != last_if) {
-					last_if = ifdesc->bInterfaceNumber;
-					if (_classdriver_load(dev, (uint8_t *)ifdesc, iif.rem) != HAL_SUCCESS) {
-						uwarnf("No drivers found for IF #%d", ifdesc->bInterfaceNumber);
-					}
-				}
-			}
-		} else {
-			uwarn("Unable to load driver.");
+	} else {
+		if (_classdriver_load(dev, devdesc->bDeviceClass,
+				devdesc->bDeviceSubClass,
+				devdesc->bDeviceProtocol,
+				(uint8_t *)devdesc, USBH_DT_DEVICE_SIZE) != HAL_SUCCESS) {
+			uwarn("No drivers found.");
 		}
 	}
 
@@ -1397,15 +1390,6 @@ exit:
 	}
 }
 
-void usbhInit(void) {
-	uint8_t i;
-	for (i = 0; i < sizeof_array(usbh_classdrivers_lookup); i++) {
-		if (usbh_classdrivers_lookup[i]->vmt->init) {
-			usbh_classdrivers_lookup[i]->vmt->init();
-		}
-	}
-	usbh_lld_init();
-}
 
 #endif
 

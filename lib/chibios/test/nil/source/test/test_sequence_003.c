@@ -1,5 +1,5 @@
 /*
-    ChibiOS - Copyright (C) 2006..2017 Giovanni Di Sirio
+    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,238 +22,178 @@
  * @file    test_sequence_003.c
  * @brief   Test Sequence 003 code.
  *
- * @page test_sequence_003 [3] Semaphores
+ * @page test_sequence_003 [3] Suspend/Resume and Event Flags
  *
  * File: @ref test_sequence_003.c
  *
  * <h2>Description</h2>
  * This sequence tests the ChibiOS/NIL functionalities related to
- * counter semaphores.
- *
- * <h2>Conditions</h2>
- * This sequence is only executed if the following preprocessor condition
- * evaluates to true:
- * - CH_CFG_USE_SEMAPHORES
- * .
+ * threads suspend/resume and event flags.
  *
  * <h2>Test Cases</h2>
  * - @subpage test_003_001
  * - @subpage test_003_002
- * - @subpage test_003_003
  * .
  */
-
-#if (CH_CFG_USE_SEMAPHORES) || defined(__DOXYGEN__)
 
 /****************************************************************************
  * Shared code.
  ****************************************************************************/
 
-#include "ch.h"
-
-static semaphore_t sem1;
+static thread_reference_t tr1;
 
 /****************************************************************************
  * Test cases.
  ****************************************************************************/
 
 /**
- * @page test_003_001 [3.1] Semaphore primitives, no state change
+ * @page test_003_001 [3.1] Suspend and Resume functionality
  *
  * <h2>Description</h2>
- * Wait, Signal and Reset primitives are tested. The testing thread
- * does not trigger a state change.
+ * The functionality of chThdSuspendTimeoutS() and chThdResumeI() is
+ * tested.
  *
  * <h2>Test Steps</h2>
- * - [3.1.1] The function chSemWait() is invoked, after return the
- *   counter and the returned message are tested.
- * - [3.1.2] The function chSemSignal() is invoked, after return the
- *   counter is tested.
- * - [3.1.3] The function chSemReset() is invoked, after return the
- *   counter is tested.
+ * - [3.1.1] The function chThdSuspendTimeoutS() is invoked, the thread
+ *   is remotely resumed with message @p MSG_OK. On return the message
+ *   and the state of the reference are tested.
+ * - [3.1.2] The function chThdSuspendTimeoutS() is invoked, the thread
+ *   is not resumed so a timeout must occur. On return the message and
+ *   the state of the reference are tested.
  * .
  */
 
 static void test_003_001_setup(void) {
-  chSemObjectInit(&sem1, 1);
-}
-
-static void test_003_001_teardown(void) {
-  chSemReset(&sem1, 0);
+  tr1 = NULL;
 }
 
 static void test_003_001_execute(void) {
+  systime_t time;
+  msg_t msg;
 
-  /* [3.1.1] The function chSemWait() is invoked, after return the
-     counter and the returned message are tested.*/
+  /* [3.1.1] The function chThdSuspendTimeoutS() is invoked, the thread
+     is remotely resumed with message @p MSG_OK. On return the message
+     and the state of the reference are tested.*/
   test_set_step(1);
   {
-    msg_t msg;
-
-    msg = chSemWait(&sem1);
-    test_assert_lock(chSemGetCounterI(&sem1) == 0, "wrong counter value");
-    test_assert(MSG_OK == msg, "wrong returned message");
+    chSysLock();
+    msg = chThdSuspendTimeoutS(&gtr1, TIME_INFINITE);
+    chSysUnlock();
+    test_assert(NULL == gtr1, "not NULL");
+    test_assert(MSG_OK == msg,"wrong returned message");
   }
 
-  /* [3.1.2] The function chSemSignal() is invoked, after return the
-     counter is tested.*/
+  /* [3.1.2] The function chThdSuspendTimeoutS() is invoked, the thread
+     is not resumed so a timeout must occur. On return the message and
+     the state of the reference are tested.*/
   test_set_step(2);
   {
-    chSemSignal(&sem1);
-    test_assert_lock(chSemGetCounterI(&sem1) == 1, "wrong counter value");
-  }
-
-  /* [3.1.3] The function chSemReset() is invoked, after return the
-     counter is tested.*/
-  test_set_step(3);
-  {
-    chSemReset(&sem1, 2);
-    test_assert_lock(chSemGetCounterI(&sem1) == 2, "wrong counter value");
+    chSysLock();
+    time = chVTGetSystemTimeX();
+    msg = chThdSuspendTimeoutS(&tr1, MS2ST(1000));
+    chSysUnlock();
+    test_assert_time_window(time + MS2ST(1000),
+                            time + MS2ST(1000) + 1,
+                            "out of time window");
+    test_assert(NULL == tr1, "not NULL");
+    test_assert(MSG_TIMEOUT == msg, "wrong returned message");
   }
 }
 
 static const testcase_t test_003_001 = {
-  "Semaphore primitives, no state change",
+  "Suspend and Resume functionality",
   test_003_001_setup,
-  test_003_001_teardown,
+  NULL,
   test_003_001_execute
 };
 
+#if (CH_CFG_USE_EVENTS) || defined(__DOXYGEN__)
 /**
- * @page test_003_002 [3.2] Semaphore primitives, with state change
+ * @page test_003_002 [3.2] Events Flags functionality
  *
  * <h2>Description</h2>
- * Wait, Signal and Reset primitives are tested. The testing thread
- * triggers a state change.
+ * Event flags functionality is tested.
+ *
+ * <h2>Conditions</h2>
+ * This test is only executed if the following preprocessor condition
+ * evaluates to true:
+ * - CH_CFG_USE_EVENTS
+ * .
  *
  * <h2>Test Steps</h2>
- * - [3.2.1] The function chSemWait() is invoked, after return the
- *   counter and the returned message are tested. The semaphore is
- *   signaled by another thread.
- * - [3.2.2] The function chSemWait() is invoked, after return the
- *   counter and the returned message are tested. The semaphore is
- *   reset by another thread.
+ * - [3.2.1] A set of event flags are set on the current thread then
+ *   the function chEvtWaitAnyTimeout() is invoked, the function is
+ *   supposed to return immediately because the event flags are already
+ *   pending, after return the events mask is tested.
+ * - [3.2.2] The pending event flags mask is cleared then the function
+ *   chEvtWaitAnyTimeout() is invoked, after return the events mask is
+ *   tested. The thread is signaled by another thread.
+ * - [3.2.3] The function chEvtWaitAnyTimeout() is invoked, no event
+ *   can wakeup the thread, the function must return because timeout.
  * .
  */
 
-static void test_003_002_setup(void) {
-  chSemObjectInit(&gsem1, 0);
-}
-
-static void test_003_002_teardown(void) {
-  chSemReset(&gsem1, 0);
-}
-
 static void test_003_002_execute(void) {
+  systime_t time;
+  eventmask_t events;
 
-  /* [3.2.1] The function chSemWait() is invoked, after return the
-     counter and the returned message are tested. The semaphore is
-     signaled by another thread.*/
+  /* [3.2.1] A set of event flags are set on the current thread then
+     the function chEvtWaitAnyTimeout() is invoked, the function is
+     supposed to return immediately because the event flags are already
+     pending, after return the events mask is tested.*/
   test_set_step(1);
   {
-    msg_t msg;
-
-    msg = chSemWait(&gsem1);
-    test_assert_lock(chSemGetCounterI(&gsem1) == 0, "wrong counter value");
-    test_assert(MSG_OK == msg, "wrong returned message");
+    time = chVTGetSystemTimeX();
+    chEvtSignal(chThdGetSelfX(), 0x55);
+    events = chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000));
+    test_assert((eventmask_t)0 != events, "timed out");
+    test_assert((eventmask_t)0x55 == events, "wrong events mask");
   }
 
-  /* [3.2.2] The function chSemWait() is invoked, after return the
-     counter and the returned message are tested. The semaphore is
-     reset by another thread.*/
+  /* [3.2.2] The pending event flags mask is cleared then the function
+     chEvtWaitAnyTimeout() is invoked, after return the events mask is
+     tested. The thread is signaled by another thread.*/
   test_set_step(2);
   {
-    msg_t msg;
+    time = chVTGetSystemTimeX();
+    chThdGetSelfX()->epmask = 0;
+    events = chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(1000));
+    test_assert((eventmask_t)0 != events, "timed out");
+    test_assert((eventmask_t)0x55 == events, "wrong events mask");
+  }
 
-    msg = chSemWait(&gsem2);
-    test_assert_lock(chSemGetCounterI(&gsem2) == 0,"wrong counter value");
-    test_assert(MSG_RESET == msg, "wrong returned message");
+  /* [3.2.3] The function chEvtWaitAnyTimeout() is invoked, no event
+     can wakeup the thread, the function must return because timeout.*/
+  test_set_step(3);
+  {
+    time = chVTGetSystemTimeX();
+    events = chEvtWaitAnyTimeout(0, MS2ST(1000));
+    test_assert_time_window(time + MS2ST(1000),
+                            time + MS2ST(1000) + 1,
+                            "out of time window");
+    test_assert((eventmask_t)0 == events, "wrong events mask");
   }
 }
 
 static const testcase_t test_003_002 = {
-  "Semaphore primitives, with state change",
-  test_003_002_setup,
-  test_003_002_teardown,
+  "Events Flags functionality",
+  NULL,
+  NULL,
   test_003_002_execute
 };
-
-/**
- * @page test_003_003 [3.3] Semaphores timeout
- *
- * <h2>Description</h2>
- * Timeout on semaphores is tested.
- *
- * <h2>Test Steps</h2>
- * - [3.3.1] The function chSemWaitTimeout() is invoked a first time,
- *   after return the system time, the counter and the returned message
- *   are tested.
- * - [3.3.2] The function chSemWaitTimeout() is invoked again, after
- *   return the system time, the counter and the returned message are
- *   tested.
- * .
- */
-
-static void test_003_003_setup(void) {
-  chSemObjectInit(&sem1, 0);
-}
-
-static void test_003_003_teardown(void) {
-  chSemReset(&sem1, 0);
-}
-
-static void test_003_003_execute(void) {
-  systime_t time;
-  msg_t msg;
-
-  /* [3.3.1] The function chSemWaitTimeout() is invoked a first time,
-     after return the system time, the counter and the returned message
-     are tested.*/
-  test_set_step(1);
-  {
-    time = chVTGetSystemTimeX();
-    msg = chSemWaitTimeout(&sem1, MS2ST(1000));
-    test_assert_time_window(time + MS2ST(1000),
-                            time + MS2ST(1000) + 1,
-                            "out of time window");
-    test_assert_lock(chSemGetCounterI(&sem1) == 0, "wrong counter value");
-    test_assert(MSG_TIMEOUT == msg, "wrong timeout message");
-  }
-
-  /* [3.3.2] The function chSemWaitTimeout() is invoked again, after
-     return the system time, the counter and the returned message are
-     tested.*/
-  test_set_step(2);
-  {
-    time = chVTGetSystemTimeX();
-    msg = chSemWaitTimeout(&sem1, MS2ST(1000));
-    test_assert_time_window(time + MS2ST(1000),
-                            time + MS2ST(1000) + 1,
-                            "out of time window");
-    test_assert_lock(chSemGetCounterI(&sem1) == 0, "wrong counter value");
-    test_assert(MSG_TIMEOUT == msg, "wrong timeout message");
-  }
-}
-
-static const testcase_t test_003_003 = {
-  "Semaphores timeout",
-  test_003_003_setup,
-  test_003_003_teardown,
-  test_003_003_execute
-};
+#endif /* CH_CFG_USE_EVENTS */
 
 /****************************************************************************
  * Exported data.
  ****************************************************************************/
 
 /**
- * @brief   Semaphores.
+ * @brief   Suspend/Resume and Event Flags.
  */
 const testcase_t * const test_sequence_003[] = {
   &test_003_001,
+#if (CH_CFG_USE_EVENTS) || defined(__DOXYGEN__)
   &test_003_002,
-  &test_003_003,
+#endif
   NULL
 };
-
-#endif /* CH_CFG_USE_SEMAPHORES */

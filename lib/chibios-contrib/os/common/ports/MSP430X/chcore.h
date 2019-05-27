@@ -28,8 +28,6 @@
 #include <msp430.h>
 #include <in430.h>
 
-extern bool __msp430x_in_isr;
-
 /*===========================================================================*/
 /* Module constants.                                                         */
 /*===========================================================================*/
@@ -227,27 +225,21 @@ struct port_context {
  * @details This macro must be inserted at the start of all IRQ handlers
  *          enabled to invoke system APIs.
  */
-#define PORT_IRQ_PROLOGUE() __msp430x_in_isr = true;
+#define PORT_IRQ_PROLOGUE() 
 
 /**
  * @brief   IRQ epilogue code.
  * @details This macro must be inserted at the end of all IRQ handlers
  *          enabled to invoke system APIs.
  */
-#define PORT_IRQ_EPILOGUE() {                                               \
-  __msp430x_in_isr = false;                                                 \
-  _dbg_check_lock();                                                        \
-  if (chSchIsPreemptionRequired())                                          \
-    chSchDoReschedule();                                                    \
-  _dbg_check_unlock();                                                      \
-}
+#define PORT_IRQ_EPILOGUE() chSchRescheduleS()
 
 /**
  * @brief   IRQ handler function declaration.
  * @note    @p id can be a function name or a vector number depending on the
  *          port implementation.
  */
-#define PORT_IRQ_HANDLER(id) __attribute__ ((interrupt(id)))                \
+#define PORT_IRQ_HANDLER(id) __attribute__ ((interrupt(id)))                  \
   void ISR_ ## id (void)
 
 /**
@@ -301,7 +293,7 @@ extern "C" {
  * @brief   Port-related initialization code.
  */
 static inline void port_init(void) {
-  __msp430x_in_isr = false;
+
 }
 
 /**
@@ -336,7 +328,9 @@ static inline bool port_irq_enabled(syssts_t sts) {
  * @retval true         running in ISR mode.
  */
 static inline bool port_is_isr_context(void) {
-  return __msp430x_in_isr;
+  /* Efficiency would be enhanced by not doing this, 
+   * because of implementation details */
+  return __get_SR_register() & GIE;
 }
 
 /**

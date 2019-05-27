@@ -78,9 +78,9 @@ typedef enum {
 } flash_error_t;
 
 /**
- * @brief   Type of a flash offset.
+ * @brief   Type of a flash address.
  */
-typedef uint32_t flash_offset_t;
+typedef uint32_t flash_address_t;
 
 /**
  * @brief   Type of a flash sector number.
@@ -92,13 +92,13 @@ typedef uint32_t flash_sector_t;
  */
 typedef struct {
   /**
-   * @brief         Sector offset.
+   * @brief         Sector address.
    */
-  flash_offset_t        offset;
+  flash_address_t       address;
   /**
    * @brief         Sector size.
    */
-  uint32_t              size;
+  size_t                size;
 } flash_sector_descriptor_t;
 
 /**
@@ -112,7 +112,7 @@ typedef struct {
   /**
    * @brief     Size of write page.
    */
-  uint32_t              page_size;
+  size_t                page_size;
   /**
    * @brief     Number of sectors in the device.
    */
@@ -125,15 +125,15 @@ typedef struct {
   const flash_sector_descriptor_t *sectors;
   /**
    * @brief     Size of sectors for devices with uniform sector size.
-   * @note      If zero then the device has non uniform sectors described
+   * @note      If zero then the device has non uniform sectos described
    *            by the @p sectors array.
    */
-  uint32_t              sectors_size;
+  size_t                sectors_size;
   /**
    * @brief     Flash address if memory mapped or zero.
    * @note      Conventionally, non memory mapped devices have address zero.
    */
-  flash_offset_t        address;
+  flash_address_t       address;
 } flash_descriptor_t;
 
 /**
@@ -144,11 +144,11 @@ typedef struct {
   /* Get flash device attributes.*/                                         \
   const flash_descriptor_t * (*get_descriptor)(void *instance);             \
   /* Read operation.*/                                                      \
-  flash_error_t (*read)(void *instance, flash_offset_t offset,              \
-                        size_t n, uint8_t *rp);                             \
+  flash_error_t (*read)(void *instance, flash_address_t addr,               \
+                        uint8_t *rp, size_t n);                             \
   /* Program operation.*/                                                   \
-  flash_error_t (*program)(void *instance, flash_offset_t offset,           \
-                           size_t n, const uint8_t *pp);                    \
+  flash_error_t (*program)(void *instance, flash_address_t addr,            \
+                           const uint8_t *pp, size_t n);                    \
   /* Erase whole flash device.*/                                            \
   flash_error_t (*start_erase_all)(void *instance);                         \
   /* Erase single sector.*/                                                 \
@@ -200,7 +200,7 @@ typedef struct {
  * @brief   Sensors get axes number.
  *
  * @param[in] ip        pointer to a @p BaseFlash or derived class
- * @return              A flash device descriptor.
+ * @return              An error code.
  *
  * @api
  */
@@ -211,9 +211,9 @@ typedef struct {
  * @brief   Read operation.
  *
  * @param[in] ip        pointer to a @p BaseFlash or derived class
- * @param[in] offset    flash offset
- * @param[in] n         number of bytes to be read
+ * @param[in] addr      flash address
  * @param[out] rp       pointer to the data buffer
+ * @param[in] n         number of bytes to be read
  * @return              An error code.
  * @retval FLASH_NO_ERROR if there is no erase operation in progress.
  * @retval FLASH_BUSY_ERASING if there is an erase operation in progress.
@@ -221,16 +221,16 @@ typedef struct {
  *
  * @api
  */
-#define flashRead(ip, offset, n, rp)                                        \
-  (ip)->vmt->read(ip, offset, n, rp)
+#define flashRead(ip, addr, rp, n)                                          \
+  (ip)->vmt->read(ip, addr, rp, n)
 
 /**
  * @brief   Program operation.
  *
  * @param[in] ip        pointer to a @p BaseFlash or derived class
- * @param[in] offset    flash offset
+ * @param[in] addr      flash address
+ * @param[in] wp        pointer to the data buffer
  * @param[in] n         number of bytes to be programmed
- * @param[in] pp        pointer to the data buffer
  * @return              An error code.
  * @retval FLASH_NO_ERROR if there is no erase operation in progress.
  * @retval FLASH_BUSY_ERASING if there is an erase operation in progress.
@@ -238,8 +238,8 @@ typedef struct {
  *
  * @api
  */
-#define flashProgram(ip, offset, n, pp)                                     \
-  (ip)->vmt->program(ip, offset, n, pp)
+#define flashProgram(ip, addr, pp, n)                                       \
+  (ip)->vmt->program(ip, addr, pp, n)
 
 /**
  * @brief   Starts a whole-device erase operation.
@@ -308,8 +308,6 @@ typedef struct {
 extern "C" {
 #endif
   flash_error_t flashWaitErase(BaseFlash *devp);
-  flash_offset_t flashGetSectorOffset(BaseFlash *devp, flash_sector_t sector);
-  uint32_t flashGetSectorSize(BaseFlash *devp, flash_sector_t sector);
 #ifdef __cplusplus
 }
 #endif

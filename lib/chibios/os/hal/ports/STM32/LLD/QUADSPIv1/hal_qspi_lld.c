@@ -211,22 +211,6 @@ void qspi_lld_stop(QSPIDriver *qspip) {
  */
 void qspi_lld_command(QSPIDriver *qspip, const qspi_command_t *cmdp) {
 
-#if STM32_USE_STM32_D1_WORKAROUND == TRUE
-  /* If it is a command without address and alternate phases then the command
-     is sent as an alternate byte, the command phase is suppressed.*/
-  if ((cmdp->cfg & (QSPI_CFG_ADDR_MODE_MASK | QSPI_CFG_ALT_MODE_MASK)) == 0U) {
-    uint32_t cfg;
-
-    /* The command mode field is copied in the alternate mode field. All
-       other fields are not used in this scenario.*/
-    cfg = (cmdp->cfg  & QSPI_CFG_CMD_MODE_MASK) << 6U;
-
-    qspip->qspi->DLR = 0U;
-    qspip->qspi->ABR = cmdp->cfg & QSPI_CFG_CMD_MASK;
-    qspip->qspi->CCR = cfg;
-    return;
-  }
-#endif
   qspip->qspi->DLR = 0U;
   qspip->qspi->ABR = cmdp->alt;
   qspip->qspi->CCR = cmdp->cfg;
@@ -256,9 +240,7 @@ void qspi_lld_send(QSPIDriver *qspip, const qspi_command_t *cmdp,
   qspip->qspi->DLR = n - 1;
   qspip->qspi->ABR = cmdp->alt;
   qspip->qspi->CCR = cmdp->cfg;
-  if ((cmdp->cfg & QSPI_CFG_ADDR_MODE_MASK) != QSPI_CFG_ADDR_MODE_NONE) {
-    qspip->qspi->AR  = cmdp->addr;
-  }
+  qspip->qspi->AR  = cmdp->addr;
 
   dmaStreamEnable(qspip->dma);
 }
@@ -284,65 +266,10 @@ void qspi_lld_receive(QSPIDriver *qspip, const qspi_command_t *cmdp,
   qspip->qspi->DLR = n - 1;
   qspip->qspi->ABR = cmdp->alt;
   qspip->qspi->CCR = cmdp->cfg | QUADSPI_CCR_FMODE_0;
-  if ((cmdp->cfg & QSPI_CFG_ADDR_MODE_MASK) != QSPI_CFG_ADDR_MODE_NONE) {
-    qspip->qspi->AR  = cmdp->addr;
-  }
+  qspip->qspi->AR  = cmdp->addr;
 
   dmaStreamEnable(qspip->dma);
 }
-
-#if (QSPI_SUPPORTS_MEMMAP == TRUE) || defined(__DOXYGEN__)
-/**
- * @brief   Maps in memory space a QSPI flash device.
- * @pre     The memory flash device must be initialized appropriately
- *          before mapping it in memory space.
- *
- * @param[in] qspip     pointer to the @p QSPIDriver object
- * @param[in] cmdp      pointer to the command descriptor
- * @param[out] addrp    pointer to the memory start address of the mapped
- *                      flash or @p NULL
- *
- * @notapi
- */
-void qspi_lld_map_flash(QSPIDriver *qspip,
-                        const qspi_command_t *cmdp,
-                        uint8_t **addrp) {
-
-  /* Disabling the DMA request while in memory mapped mode.*/
-  qspip->qspi->CR &= ~QUADSPI_CR_DMAEN;
-
-  /* Starting memory mapped mode using the passed parameters.*/
-  qspip->qspi->DLR = 0;
-  qspip->qspi->ABR = 0;
-  qspip->qspi->AR  = 0;
-  qspip->qspi->CCR = cmdp->cfg | QUADSPI_CCR_FMODE_1 | QUADSPI_CCR_FMODE_0;
-
-  /* Mapped flash absolute base address.*/
-  if (addrp != NULL) {
-    *addrp = (uint8_t *)0x90000000;
-  }
-}
-
-/**
- * @brief   Maps in memory space a QSPI flash device.
- * @post    The memory flash device must be re-initialized for normal
- *          commands exchange.
- *
- * @param[in] qspip     pointer to the @p QSPIDriver object
- *
- * @notapi
- */
-void qspi_lld_unmap_flash(QSPIDriver *qspip) {
-
-  /* Aborting memory mapped mode.*/
-  qspip->qspi->CR |= QUADSPI_CR_ABORT;
-  while ((qspip->qspi->CR & QUADSPI_CR_ABORT) != 0U) {
-  }
-
-  /* Re-enabling DMA request, we are going back to indirect mode.*/
-  qspip->qspi->CR |= QUADSPI_CR_DMAEN;
-}
-#endif /* QSPI_SUPPORTS_MEMMAP == TRUE */
 
 #endif /* HAL_USE_QSPI */
 

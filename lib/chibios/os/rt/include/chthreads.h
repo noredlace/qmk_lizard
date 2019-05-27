@@ -182,9 +182,6 @@ typedef struct {
  * @note    The specified time is rounded up to a value allowed by the real
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
- * @note    Use of this macro for large values is not secure because
- *          integer overflows, make sure your value can be correctly
- *          converted.
  *
  * @param[in] sec       time in seconds, must be different from zero
  *
@@ -198,9 +195,6 @@ typedef struct {
  * @note    The specified time is rounded up to a value allowed by the real
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
- * @note    Use of this macro for large values is not secure because
- *          integer overflows, make sure your value can be correctly
- *          converted.
  *
  * @param[in] msec      time in milliseconds, must be different from zero
  *
@@ -214,9 +208,6 @@ typedef struct {
  * @note    The specified time is rounded up to a value allowed by the real
  *          system tick clock.
  * @note    The maximum specifiable value is implementation dependent.
- * @note    Use of this macro for large values is not secure because
- *          integer overflows, make sure your value can be correctly
- *          converted.
  *
  * @param[in] usec      time in microseconds, must be different from zero
  *
@@ -422,6 +413,7 @@ static inline bool chThdQueueIsEmptyI(threads_queue_t *tqp) {
 
   return queue_isempty(tqp);
 }
+
 
 /**
  * @brief   Dequeues and wakes up one thread from the threads queue object.

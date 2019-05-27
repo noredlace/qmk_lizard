@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    hal_usb_lld.h
+ * @file    usb_lld.h
  * @brief   AVR USB subsystem low level driver header.
  *
  * @addtogroup USB
  * @{
  */
 
-#ifndef HAL_USB_LLD_H
-#define HAL_USB_LLD_H
+#ifndef _USB_LLD_H_
+#define _USB_LLD_H_
 
 #if (HAL_USE_USB == TRUE) || defined(__DOXYGEN__)
 
@@ -307,10 +307,6 @@ struct USBDriver {
    * @brief   Current USB device configuration.
    */
   uint8_t                       configuration;
-  /**
-   * @brief   State of the driver when a suspend happened.
-   */
-  usbstate_t                    saved_state;
 #if defined(USB_DRIVER_EXT_FIELDS)
   USB_DRIVER_EXT_FIELDS
 #endif
@@ -397,6 +393,6 @@ extern "C" {
 
 #endif /* HAL_USE_USB == TRUE */
 
-#endif /* HAL_USB_LLD_H */
+#endif /* _USB_LLD_H_ */
 
 /** @} */

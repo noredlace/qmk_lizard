@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    hal_icu_lld.h
+ * @file    AVR/icu_lld.h
  * @brief   AVR ICU driver subsystem low level driver header.
  *
  * @addtogroup ICU
  * @{
  */
 
-#ifndef HAL_ICU_LLD_H
-#define HAL_ICU_LLD_H
+#ifndef _ICU_LLD_H_
+#define _ICU_LLD_H_
 
 #if HAL_USE_ICU || defined(__DOXYGEN__)
 
@@ -190,6 +190,6 @@ extern "C" {
 
 #endif /* HAL_USE_ICU */
 
-#endif /* HAL_ICU_LLD_H */
+#endif /* _ICU_LLD_H_ */
 
 /** @} */

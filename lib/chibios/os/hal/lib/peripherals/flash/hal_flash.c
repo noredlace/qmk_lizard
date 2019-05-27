@@ -1,17 +1,20 @@
 /*
-    ChibiOS - Copyright (C) 2006..2016 Giovanni Di Sirio
+    N25Q128 Flash Driver - Copyright (C) 2016 Giovanni Di Sirio
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+    This file is part of ChibiOS.
 
-        http://www.apache.org/licenses/LICENSE-2.0
+    ChibiOS is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+    ChibiOS is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /**
@@ -50,10 +53,7 @@
  * @brief   Waits until the current erase operation is finished.
  *
  * @param[in] devp      pointer to a @p BaseFlash object
- * 
- * @return              An error code.
- * @retval FLASH_NO_ERROR if there is no erase operation in progress.
- * @retval FLASH_ERROR_ERASE if the erase operation failed.
+ * @param[in] cb        polling callback or @p NULL
  */
 flash_error_t flashWaitErase(BaseFlash *devp) {
 
@@ -72,53 +72,4 @@ flash_error_t flashWaitErase(BaseFlash *devp) {
   }
 }
 
-/**
- * @brief   Returns the offset of a sector.
- *
- * @param[in] devp      pointer to a @p BaseFlash object
- * @param[in] sector    flash sector number
- *
- * @return the offset of the sector
- */
-flash_offset_t flashGetSectorOffset(BaseFlash *devp,
-                                    flash_sector_t sector) {
-  flash_offset_t offset;
-  const flash_descriptor_t *descriptor = flashGetDescriptor(devp);
-
-  osalDbgAssert(sector < descriptor->sectors_count, "invalid sector");
-
-  if (descriptor->sectors != NULL) {
-    offset = descriptor->sectors[sector].offset;
-  }
-  else {
-    offset = (flash_offset_t)sector * (flash_offset_t)descriptor->sectors_size;
-  }
-
-  return offset;
-}
-
-/**
- * @brief   Returns the size of a sector.
- *
- * @param[in] devp      pointer to a @p BaseFlash object
- * @param[in] sector    flash sector number
- *
- * @return the size of the sector
- */
-uint32_t flashGetSectorSize(BaseFlash *devp,
-                            flash_sector_t sector) {
-  uint32_t size;
-  const flash_descriptor_t *descriptor = flashGetDescriptor(devp);
-
-  osalDbgAssert(sector < descriptor->sectors_count, "invalid sector");
-
-  if (descriptor->sectors != NULL) {
-    size = descriptor->sectors[sector].size;
-  }
-  else {
-    size = descriptor->sectors_size;
-  }
-
-  return size;
-}
 /** @} */

@@ -50,7 +50,7 @@
   /* Invoke the sample bias procedure.*/                                    \
   msg_t (*sample_bias)(void *instance);                                     \
   /* Invoke the set bias procedure.*/                                       \
-  msg_t (*set_bias)(void *instance, float biases[]);                        \
+  msg_t (*set_bias)(void *instance, int32_t biases[]);                      \
   /* Remove bias stored data.*/                                             \
   msg_t (*reset_bias)(void *instance);                                      \
   /* Invoke the set sensitivity procedure.*/                                \
@@ -101,12 +101,12 @@ typedef struct {
  * @brief   Gyroscope get axes number.
  *
  * @param[in] ip        pointer to a @p BaseGyroscope class.
- * @return              The number of axes of the BaseGyroscope
+ * @return              The number of axes of the BaseSensor
  *
  * @api
  */
 #define gyroscopeGetAxesNumber(ip)                                          \
-        (ip)->vmt_basegyroscope->get_channels_number(ip)
+        (ip)->vmt_basegyroscope->get_axes_number(ip)
 
 /**
  * @brief   Gyroscope read raw data.
@@ -158,7 +158,8 @@ typedef struct {
 /**
  * @brief   Updates gyroscope bias data from received buffer.
  * @note    The bias buffer must have the same length of the
- *          the gyroscope axes number.
+ *          the gyroscope axes number. Bias must be computed on
+ *          raw data and is a signed integer.
  *
  * @param[in] ip        pointer to a @p BaseGyroscope class.
  * @param[in] bp        pointer to a buffer of bias values.

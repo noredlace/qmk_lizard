@@ -79,10 +79,6 @@
   #define EEESIZE 0x39
 #endif
 
-/** \brief eeprom initialization
- *
- * FIXME: needs doc
- */
 void eeprom_initialize(void)
 {
 	uint32_t count=0;
@@ -115,10 +111,6 @@ void eeprom_initialize(void)
 
 #define FlexRAM ((uint8_t *)0x14000000)
 
-/** \brief eeprom read byte
- *
- * FIXME: needs doc
- */
 uint8_t eeprom_read_byte(const uint8_t *addr)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -127,10 +119,6 @@ uint8_t eeprom_read_byte(const uint8_t *addr)
 	return FlexRAM[offset];
 }
 
-/** \brief eeprom read word
- *
- * FIXME: needs doc
- */
 uint16_t eeprom_read_word(const uint16_t *addr)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -139,10 +127,6 @@ uint16_t eeprom_read_word(const uint16_t *addr)
 	return *(uint16_t *)(&FlexRAM[offset]);
 }
 
-/** \brief eeprom read dword
- *
- * FIXME: needs doc
- */
 uint32_t eeprom_read_dword(const uint32_t *addr)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -151,10 +135,6 @@ uint32_t eeprom_read_dword(const uint32_t *addr)
 	return *(uint32_t *)(&FlexRAM[offset]);
 }
 
-/** \brief eeprom read block
- *
- * FIXME: needs doc
- */
 void eeprom_read_block(void *buf, const void *addr, uint32_t len)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -168,19 +148,11 @@ void eeprom_read_block(void *buf, const void *addr, uint32_t len)
 	}
 }
 
-/** \brief eeprom is ready
- *
- * FIXME: needs doc
- */
 int eeprom_is_ready(void)
 {
 	return (FTFL->FCNFG & FTFL_FCNFG_EEERDY) ? 1 : 0;
 }
 
-/** \brief flexram wait
- *
- * FIXME: needs doc
- */
 static void flexram_wait(void)
 {
 	while (!(FTFL->FCNFG & FTFL_FCNFG_EEERDY)) {
@@ -188,10 +160,6 @@ static void flexram_wait(void)
 	}
 }
 
-/** \brief eeprom_write_byte
- *
- * FIXME: needs doc
- */
 void eeprom_write_byte(uint8_t *addr, uint8_t value)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -204,10 +172,6 @@ void eeprom_write_byte(uint8_t *addr, uint8_t value)
 	}
 }
 
-/** \brief eeprom write word
- *
- * FIXME: needs doc
- */
 void eeprom_write_word(uint16_t *addr, uint16_t value)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -235,10 +199,6 @@ void eeprom_write_word(uint16_t *addr, uint16_t value)
 #endif
 }
 
-/** \brief eeprom write dword
- *
- * FIXME: needs doc
- */
 void eeprom_write_dword(uint32_t *addr, uint32_t value)
 {
 	uint32_t offset = (uint32_t)addr;
@@ -282,10 +242,6 @@ void eeprom_write_dword(uint32_t *addr, uint32_t value)
 #endif
 }
 
-/** \brief eeprom write block
- *
- * FIXME: needs doc
- */
 void eeprom_write_block(const void *buf, void *addr, uint32_t len)
 {
 	uint32_t offset = (uint32_t)addr;

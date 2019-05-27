@@ -39,7 +39,7 @@ static void gpt3cb(GPTDriver *gptp) {
 }
 
 /*
- * GPT4 configuration.
+ * GPT2 configuration.
  */
 static const GPTConfig gpt4cfg = {
   10000,    /* 10kHz timer clock.*/

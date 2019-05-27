@@ -15,10 +15,11 @@
 */
 
 /**
- * @file    hal_stm32_ltdc.c
+ * @file    stm32_ltdc.c
  * @brief   LCD-TFT Controller Driver.
  */
 
+#include "ch.h"
 #include "hal.h"
 
 #include "hal_stm32_ltdc.h"

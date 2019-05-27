@@ -22,17 +22,71 @@
  * @file    l3gd20.c
  * @brief   L3GD20 MEMS interface module code.
  *
- * @addtogroup L3GD20
- * @ingroup EX_ST
+ * @addtogroup l3gd20
  * @{
  */
 
 #include "hal.h"
+
 #include "l3gd20.h"
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
+
+#define  L3GD20_SENS_250DPS                 ((float)0.00875f)
+#define  L3GD20_SENS_500DPS                 ((float)0.01750f)
+#define  L3GD20_SENS_2000DPS                ((float)0.07000f)
+
+#define  L3GD20_DI                          ((uint8_t)0xFF)
+#define  L3GD20_DI_0                        ((uint8_t)0x01)
+#define  L3GD20_DI_1                        ((uint8_t)0x02)
+#define  L3GD20_DI_2                        ((uint8_t)0x04)
+#define  L3GD20_DI_3                        ((uint8_t)0x08)
+#define  L3GD20_DI_4                        ((uint8_t)0x10)
+#define  L3GD20_DI_5                        ((uint8_t)0x20)
+#define  L3GD20_DI_6                        ((uint8_t)0x40)
+#define  L3GD20_DI_7                        ((uint8_t)0x80)
+
+#define  L3GD20_AD                          ((uint8_t)0x3F)
+#define  L3GD20_AD_0                        ((uint8_t)0x01)
+#define  L3GD20_AD_1                        ((uint8_t)0x02)
+#define  L3GD20_AD_2                        ((uint8_t)0x04)
+#define  L3GD20_AD_3                        ((uint8_t)0x08)
+#define  L3GD20_AD_4                        ((uint8_t)0x10)
+#define  L3GD20_AD_5                        ((uint8_t)0x20)
+
+#define  L3GD20_MS                          ((uint8_t)0x40)
+#define  L3GD20_RW                          ((uint8_t)0x80)
+
+#define  L3GD20_AD_WHO_AM_I                 ((uint8_t)0x0F)
+#define  L3GD20_AD_CTRL_REG1                ((uint8_t)0x20)
+#define  L3GD20_AD_CTRL_REG2                ((uint8_t)0x21)
+#define  L3GD20_AD_CTRL_REG3                ((uint8_t)0x22)
+#define  L3GD20_AD_CTRL_REG4                ((uint8_t)0x23)
+#define  L3GD20_AD_CTRL_REG5                ((uint8_t)0x24)
+#define  L3GD20_AD_REFERENCE                ((uint8_t)0x25)
+#define  L3GD20_AD_OUT_TEMP                 ((uint8_t)0x26)
+#define  L3GD20_AD_STATUS_REG               ((uint8_t)0x27)
+#define  L3GD20_AD_OUT_X_L                  ((uint8_t)0x28)
+#define  L3GD20_AD_OUT_X_H                  ((uint8_t)0x29)
+#define  L3GD20_AD_OUT_Y_L                  ((uint8_t)0x2A)
+#define  L3GD20_AD_OUT_Y_H                  ((uint8_t)0x2B)
+#define  L3GD20_AD_OUT_Z_L                  ((uint8_t)0x2C)
+#define  L3GD20_AD_OUT_Z_H                  ((uint8_t)0x2D)
+#define  L3GD20_AD_FIFO_CTRL_REG            ((uint8_t)0x2E)
+#define  L3GD20_AD_FIFO_SRC_REG             ((uint8_t)0x2F)
+#define  L3GD20_AD_INT1_CFG                 ((uint8_t)0x30)
+#define  L3GD20_AD_INT1_SRC                 ((uint8_t)0x31)
+#define  L3GD20_AD_INT1_TSH_XH              ((uint8_t)0x32)
+#define  L3GD20_AD_INT1_TSH_XL              ((uint8_t)0x33)
+#define  L3GD20_AD_INT1_TSH_YH              ((uint8_t)0x34)
+#define  L3GD20_AD_INT1_TSH_YL              ((uint8_t)0x35)
+#define  L3GD20_AD_INT1_TSH_ZH              ((uint8_t)0x36)
+#define  L3GD20_AD_INT1_TSH_ZL              ((uint8_t)0x37)
+#define  L3GD20_AD_INT1_DURATION            ((uint8_t)0x38)
+
+#define  L3GD20_CTRL_REG4_FS_MASK           ((uint8_t)0x30)
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -41,6 +95,14 @@
 /*===========================================================================*/
 /* Driver local variables and types.                                         */
 /*===========================================================================*/
+
+/**
+ * @brief  L3GD20 Power Mode
+ */
+typedef enum {
+  L3GD20_PM_POWER_DOWN   = 0x00,    /**< Power down enabled.                */          
+  L3GD20_PM_SLEEP_NORMAL = 0x08     /**< Normal operation mode.             */          
+}l3gd20_pm_t;
 
 /*===========================================================================*/
 /* Driver local functions.                                                   */
@@ -52,18 +114,16 @@
  * @pre     The SPI interface must be initialized and the driver started.
  *
  * @param[in] spip      pointer to the SPI interface
- * @param[in] reg       starting register address
- * @param[in] n         number of consecutive registers to read
- * @param[in] b         pointer to an output buffer.
+ * @param[in] reg       register number
+ * @return              register value.
  */
-static void l3gd20SPIReadRegister(SPIDriver *spip, uint8_t reg,  size_t n,
-                                     uint8_t* b) {
-  uint8_t cmd;
-  (n == 1) ? (cmd = reg | L3GD20_RW) : (cmd = reg | L3GD20_RW | L3GD20_MS);
+static uint8_t l3gd20SPIReadRegister(SPIDriver *spip, uint8_t reg) {
+  uint8_t txbuf[2] = {L3GD20_RW | reg, 0xFF};
+  uint8_t rxbuf[2] = {0x00, 0x00};
   spiSelect(spip);
-  spiSend(spip, 1, &cmd);
-  spiReceive(spip, n, b);
+  spiExchange(spip, 2, txbuf, rxbuf);
   spiUnselect(spip);
+  return rxbuf[1];
 }
 
 /**
@@ -71,18 +131,51 @@ static void l3gd20SPIReadRegister(SPIDriver *spip, uint8_t reg,  size_t n,
  * @pre     The SPI interface must be initialized and the driver started.
  *
  * @param[in] spip      pointer to the SPI interface
- * @param[in] reg       starting register address
- * @param[in] n         number of adjacent registers to write
- * @param[in] b         pointer to a buffer of values.
+ * @param[in] reg       register number
+ * @param[in] value     register value.
  */
-static void l3gd20SPIWriteRegister(SPIDriver *spip, uint8_t reg, size_t n,
-                                   uint8_t* b) {
-  uint8_t cmd;
-  (n == 1) ? (cmd = reg) : (cmd = reg | L3GD20_MS);
-  spiSelect(spip);
-  spiSend(spip, 1, &cmd);
-  spiSend(spip, n, b);
-  spiUnselect(spip);
+static void l3gd20SPIWriteRegister(SPIDriver *spip, uint8_t reg,
+                                   uint8_t value) {
+
+  switch (reg) {
+    default:
+      /* Reserved register must not be written, according to the datasheet
+       * this could permanently damage the device.
+       */
+      osalDbgAssert(FALSE, "l3gd20SPIWriteRegister(), reserved register");
+    case L3GD20_AD_WHO_AM_I:
+    case L3GD20_AD_OUT_TEMP :
+    case L3GD20_AD_STATUS_REG:
+    case L3GD20_AD_OUT_X_L:
+    case L3GD20_AD_OUT_X_H:
+    case L3GD20_AD_OUT_Y_L:
+    case L3GD20_AD_OUT_Y_H:
+    case L3GD20_AD_OUT_Z_L:
+    case L3GD20_AD_OUT_Z_H:
+    case L3GD20_AD_FIFO_SRC_REG:
+    case L3GD20_AD_INT1_SRC:
+    /* Read only registers cannot be written, the command is ignored.*/
+      return;
+    case L3GD20_AD_CTRL_REG1:
+    case L3GD20_AD_CTRL_REG2:
+    case L3GD20_AD_CTRL_REG3:
+    case L3GD20_AD_CTRL_REG4:
+    case L3GD20_AD_CTRL_REG5:
+    case L3GD20_AD_REFERENCE:
+    case L3GD20_AD_FIFO_CTRL_REG:
+    case L3GD20_AD_INT1_CFG:
+    case L3GD20_AD_INT1_TSH_XH:
+    case L3GD20_AD_INT1_TSH_XL:
+    case L3GD20_AD_INT1_TSH_YH:
+    case L3GD20_AD_INT1_TSH_YL:
+    case L3GD20_AD_INT1_TSH_ZH:
+    case L3GD20_AD_INT1_TSH_ZL:
+    case L3GD20_AD_INT1_DURATION:
+      spiSelect(spip);
+      uint8_t txbuf[2] = {reg, value};
+      spiSend(spip, 2, txbuf);
+      spiUnselect(spip);
+  }
 }
 #endif /* L3GD20_USE_SPI */
 
@@ -97,36 +190,45 @@ static size_t get_axes_number(void *ip) {
 
 static msg_t read_raw(void *ip, int32_t axes[L3GD20_NUMBER_OF_AXES]) {
   int16_t tmp;
-  uint8_t i, buff [2 * L3GD20_NUMBER_OF_AXES];
-  msg_t msg = MSG_OK;
-  
   osalDbgCheck((ip != NULL) && (axes != NULL));
+
   osalDbgAssert((((L3GD20Driver *)ip)->state == L3GD20_READY),
               "read_raw(), invalid state");
 
 #if L3GD20_USE_SPI
   osalDbgAssert((((L3GD20Driver *)ip)->config->spip->state == SPI_READY),
                 "read_raw(), channel not ready");
-                
 #if	L3GD20_SHARED_SPI
   spiAcquireBus(((L3GD20Driver *)ip)->config->spip);
   spiStart(((L3GD20Driver *)ip)->config->spip,
            ((L3GD20Driver *)ip)->config->spicfg);
-#endif /* L3GD20_SHARED_SPI */
-
-    l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip, L3GD20_AD_OUT_X_L,
-                          L3GD20_NUMBER_OF_AXES * 2, buff);
-
+#endif /* L3GD20_SHARED_SPI */   
+  if(((L3GD20Driver *)ip)->config->axesenabling & L3GD20_AE_X){
+    tmp = l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                  L3GD20_AD_OUT_X_L);
+    tmp += l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                   L3GD20_AD_OUT_X_H) << 8;
+    axes[0] = (int32_t)tmp + ((L3GD20Driver *)ip)->bias[0];
+  }
+  if(((L3GD20Driver *)ip)->config->axesenabling & L3GD20_AE_Y){
+    tmp = l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                  L3GD20_AD_OUT_Y_L);
+    tmp += l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                   L3GD20_AD_OUT_Y_H) << 8;
+    axes[1] = (int32_t)tmp + ((L3GD20Driver *)ip)->bias[1];
+  }
+  if(((L3GD20Driver *)ip)->config->axesenabling & L3GD20_AE_Z){
+    tmp = l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                  L3GD20_AD_OUT_Z_L);
+    tmp += l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                   L3GD20_AD_OUT_Z_H) << 8;
+    axes[2] = (int32_t)tmp + ((L3GD20Driver *)ip)->bias[2];
+  }
 #if	L3GD20_SHARED_SPI
   spiReleaseBus(((L3GD20Driver *)ip)->config->spip);
 #endif /* L3GD20_SHARED_SPI */   
 #endif /* L3GD20_USE_SPI */ 
-
-    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++) {
-      tmp = buff[2*i] + (buff[2*i+1] << 8);
-      axes[i] = (int32_t)tmp;
-    }
-  return msg;
+  return MSG_OK;
 }
 
 static msg_t read_cooked(void *ip, float axes[]) {
@@ -142,7 +244,6 @@ static msg_t read_cooked(void *ip, float axes[]) {
   msg = read_raw(ip, raw);
   for(i = 0; i < L3GD20_NUMBER_OF_AXES ; i++){
     axes[i] = raw[i] * ((L3GD20Driver *)ip)->sensitivity[i];
-    axes[i] -= ((L3GD20Driver *)ip)->bias[i];
   }
   return msg;
 }
@@ -151,17 +252,14 @@ static msg_t sample_bias(void *ip) {
   uint32_t i, j;
   int32_t raw[L3GD20_NUMBER_OF_AXES];
   int32_t buff[L3GD20_NUMBER_OF_AXES] = {0, 0, 0};
-  msg_t msg;
-	
+
   osalDbgCheck(ip != NULL);
 
   osalDbgAssert((((L3GD20Driver *)ip)->state == L3GD20_READY),
                 "sample_bias(), invalid state");
 
   for(i = 0; i < L3GD20_BIAS_ACQ_TIMES; i++){
-    msg = read_raw(ip, raw);
-		if(msg != MSG_OK)
-			return msg;
+    read_raw(ip, raw);
     for(j = 0; j < L3GD20_NUMBER_OF_AXES; j++){
       buff[j] += raw[j];
     }
@@ -169,13 +267,12 @@ static msg_t sample_bias(void *ip) {
   }
 
   for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++){
-    ((L3GD20Driver *)ip)->bias[i] = (buff[i] / L3GD20_BIAS_ACQ_TIMES);
-    ((L3GD20Driver *)ip)->bias[i] *= ((L3GD20Driver *)ip)->sensitivity[i];
+    ((L3GD20Driver *)ip)->bias[i] = buff[i] / L3GD20_BIAS_ACQ_TIMES;
   }
-  return msg;
+  return MSG_OK;
 }
 
-static msg_t set_bias(void *ip, float *bp) {
+static msg_t set_bias(void *ip, int32_t *bp) {
   uint32_t i;
   
   osalDbgCheck((ip != NULL) && (bp !=NULL));
@@ -242,65 +339,22 @@ static msg_t reset_sensivity(void *ip) {
   return MSG_OK;
 }
 
-static msg_t set_full_scale(void *ip, l3gd20_fs_t fs) {
-  float newfs, scale;
-  uint8_t i, cr;
-
-  if(fs == L3GD20_FS_250DPS) {
-    newfs = L3GD20_250DPS;
-  }
-  else if(fs == L3GD20_FS_500DPS) {
-    newfs = L3GD20_500DPS;
-  }
-  else if(fs == L3GD20_FS_2000DPS) {
-    newfs = L3GD20_2000DPS;
-  }
-  else {
-    return MSG_RESET;
-  }
-
-  if(newfs != ((L3GD20Driver *)ip)->fullscale) {
-    scale = newfs / ((L3GD20Driver *)ip)->fullscale;
-    ((L3GD20Driver *)ip)->fullscale = newfs;
-
+static msg_t get_temperature(void *ip, float* tempp) {
+	
 #if L3GD20_USE_SPI
+  osalDbgAssert((((L3GD20Driver *)ip)->config->spip->state == SPI_READY),
+                "read_raw(), channel not ready");
 #if	L3GD20_SHARED_SPI
-		spiAcquireBus(((L3GD20Driver *)ip)->config->spip);
-		spiStart(((L3GD20Driver *)ip)->config->spip,
-						 ((L3GD20Driver *)ip)->config->spicfg);
-#endif /* L3GD20_SHARED_SPI */ 
-
-    /* Updating register.*/
-    l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
-                          L3GD20_AD_CTRL_REG4, 1, &cr);
-
+  spiAcquireBus(((L3GD20Driver *)ip)->config->spip);
+  spiStart(((L3GD20Driver *)ip)->config->spip,
+           ((L3GD20Driver *)ip)->config->spicfg);
+#endif /* L3GD20_SHARED_SPI */   
+  *tempp = (int8_t)l3gd20SPIReadRegister(((L3GD20Driver *)ip)->config->spip,
+                                       L3GD20_AD_OUT_TEMP);
 #if	L3GD20_SHARED_SPI
-		spiReleaseBus(((L3GD20Driver *)ip)->config->spip);
-#endif /* L3GD20_SHARED_SPI */ 
-#endif /* L3GD20_USE_SPI */
-    cr &= ~(L3GD20_CTRL_REG4_FS_MASK);
-    cr |= fs;
- 
-#if L3GD20_USE_SPI 
-#if	L3GD20_SHARED_SPI
-		spiAcquireBus(((L3GD20Driver *)ip)->config->spip);
-		spiStart(((L3GD20Driver *)ip)->config->spip,
-						 ((L3GD20Driver *)ip)->config->spicfg);
-#endif /* L3GD20_SHARED_SPI */ 
-
-    l3gd20SPIWriteRegister(((L3GD20Driver *)ip)->config->spip,
-                           L3GD20_AD_CTRL_REG4, 1, &cr);
-#if	L3GD20_SHARED_SPI
-		spiReleaseBus(((L3GD20Driver *)ip)->config->spip);
-#endif /* L3GD20_SHARED_SPI */ 
-#endif /* L3GD20_USE_SPI */
-
-    /* Scaling sensitivity and bias. Re-calibration is suggested anyway. */
-    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++) {
-      ((L3GD20Driver *)ip)->sensitivity[i] *= scale;
-      ((L3GD20Driver *)ip)->bias[i] *= scale;
-    }
-  }
+  spiReleaseBus(((L3GD20Driver *)ip)->config->spip);
+#endif /* L3GD20_SHARED_SPI */   
+#endif /* L3GD20_USE_SPI */ 
   return MSG_OK;
 }
 
@@ -317,8 +371,7 @@ static const struct BaseGyroscopeVMT vmt_basegyroscope = {
 static const struct L3GD20VMT vmt_l3gd20 = {
   get_axes_number, read_raw, read_cooked,
   sample_bias, set_bias, reset_bias,
-  set_sensivity, reset_sensivity,
-  set_full_scale
+  set_sensivity, reset_sensivity, get_temperature
 };
 
 /*===========================================================================*/
@@ -339,7 +392,7 @@ void l3gd20ObjectInit(L3GD20Driver *devp) {
   devp->vmt_l3gd20 = &vmt_l3gd20;
   devp->config = NULL;
   for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++)
-    devp->bias[i] = 0.0f;
+    devp->bias[i] = 0;
   devp->state  = L3GD20_STOP;
 }
 
@@ -353,111 +406,45 @@ void l3gd20ObjectInit(L3GD20Driver *devp) {
  */
 void l3gd20Start(L3GD20Driver *devp, const L3GD20Config *config) {
   uint32_t i;
-  uint8_t cr[5] = {0, 0, 0, 0, 0};
   osalDbgCheck((devp != NULL) && (config != NULL));
 
   osalDbgAssert((devp->state == L3GD20_STOP) || (devp->state == L3GD20_READY),
-              "l3gd20Start(), invalid state");
+              "l3gd20Start(), invalid state");			  
 
   devp->config = config;
-             
-  /* Control register 1 configuration block.*/
-  {
-    cr[0] = L3GD20_CTRL_REG1_XEN | L3GD20_CTRL_REG1_YEN | 
-          L3GD20_CTRL_REG1_ZEN | L3GD20_CTRL_REG1_PD |
-          devp->config->outputdatarate;
-#if L3GD20_USE_ADVANCED || defined(__DOXYGEN__)
-    cr[0] |= devp->config->bandwidth;
-#endif
-  }
   
-  /* Control register 2 configuration block.*/
-  {
-#if L3GD20_USE_ADVANCED || defined(__DOXYGEN__)
-  if(devp->config->hpmode != L3GD20_HPM_BYPASSED)
-    cr[1] = devp->config->hpmode | devp->config->hpconfiguration;
-#endif
-  }
-  
-  /* Control register 4 configuration block.*/
-  {
-    cr[3] = devp->config->fullscale;
-#if L3GD20_USE_ADVANCED || defined(__DOXYGEN__)
-    cr[3] |= devp->config->blockdataupdate |
-             devp->config->endianness;
-#endif
-  }
-  
-  /* Control register 5 configuration block.*/
-  {
-    
-#if L3GD20_USE_ADVANCED || defined(__DOXYGEN__)
-  if((devp->config->hpmode != L3GD20_HPM_BYPASSED)) {
-    cr[4] = L3GD20_CTRL_REG5_HPEN;
-    if(devp->config->lp2mode != L3GD20_LP2M_BYPASSED) {
-      cr[4] |= L3GD20_CTRL_REG5_INT1_SEL1 |
-               L3GD20_CTRL_REG5_OUT_SEL1;
-    }
-    else {
-      cr[4] |= L3GD20_CTRL_REG5_INT1_SEL0 |
-               L3GD20_CTRL_REG5_OUT_SEL0; 
-    }
-  }
-#endif
-  } 
-
 #if L3GD20_USE_SPI
 #if	L3GD20_SHARED_SPI
   spiAcquireBus((devp)->config->spip);
 #endif /* L3GD20_SHARED_SPI */
   spiStart((devp)->config->spip,
            (devp)->config->spicfg);
-           
-  l3gd20SPIWriteRegister(devp->config->spip, L3GD20_AD_CTRL_REG1, 
-                         5, cr);
+  l3gd20SPIWriteRegister(devp->config->spip, L3GD20_AD_CTRL_REG1,
+                         devp->config->axesenabling |
+                         L3GD20_PM_SLEEP_NORMAL |
+                         devp->config->outputdatarate);
+  l3gd20SPIWriteRegister(devp->config->spip, L3GD20_AD_CTRL_REG4,
+                         devp->config->fullscale |
+                         devp->config->blockdataupdate |
+                         devp->config->endianness);
 #if	L3GD20_SHARED_SPI
   spiReleaseBus((devp)->config->spip);
-#endif /* L3GD20_SHARED_SPI */
+#endif /* L3GD20_SHARED_SPI */  
 #endif /* L3GD20_USE_SPI */
   
-  /* Storing sensitivity information according to full scale.*/
-  if(devp->config->fullscale == L3GD20_FS_250DPS) {
-    devp->fullscale = L3GD20_250DPS;
-    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++) {
-      if (devp->config->sensitivity == NULL)
-        devp->sensitivity[i] = L3GD20_SENS_250DPS;
-      else
-        devp->sensitivity[i] = devp->config->sensitivity[i];
-    }
-  }
-  else if(devp->config->fullscale == L3GD20_FS_500DPS) {
-    devp->fullscale = L3GD20_500DPS;
-    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++) {
-      if (devp->config->sensitivity == NULL)
-        devp->sensitivity[i] = L3GD20_SENS_500DPS;
-      else
-        devp->sensitivity[i] = devp->config->sensitivity[i];
-    }
-  }
-  else if(devp->config->fullscale == L3GD20_FS_2000DPS) {
-    devp->fullscale = L3GD20_2000DPS;
-    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++) {
-      if (devp->config->sensitivity == NULL)
-        devp->sensitivity[i] = L3GD20_SENS_2000DPS;
-      else
-        devp->sensitivity[i] = devp->config->sensitivity[i];
-    }
-  }
+  /* Storing sensitivity information according to full scale value */
+  if(devp->config->fullscale == L3GD20_FS_250DPS)
+    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++)
+      devp->sensitivity[i] = L3GD20_SENS_250DPS;
+  else if(devp->config->fullscale == L3GD20_FS_500DPS)
+	for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++)
+      devp->sensitivity[i] = L3GD20_SENS_500DPS;
+  else if(devp->config->fullscale == L3GD20_FS_2000DPS)
+	for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++)
+      devp->sensitivity[i] = L3GD20_SENS_2000DPS;
   else
     osalDbgAssert(FALSE, "l3gd20Start(), full scale issue");
-  
-  if(devp->config->bias != NULL) {
-    for(i = 0; i < L3GD20_NUMBER_OF_AXES; i++) {
-      devp->bias[i] = devp->config->bias[i];
-    }
-  }
-  
-  /* This is the Gyroscope transient recovery time.*/
+  /* This is the Gyroscope transient recovery time */
   osalThreadSleepMilliseconds(10);
 
   devp->state = L3GD20_READY;
@@ -471,32 +458,27 @@ void l3gd20Start(L3GD20Driver *devp, const L3GD20Config *config) {
  * @api
  */
 void l3gd20Stop(L3GD20Driver *devp) {
-  uint8_t cr1;
+
   osalDbgCheck(devp != NULL);
 
   osalDbgAssert((devp->state == L3GD20_STOP) || (devp->state == L3GD20_READY),
                 "l3gd20Stop(), invalid state");
 
-  if (devp->state == L3GD20_READY) {
-    /* Disabling all axes and enabling power down mode.*/
-    cr1 = 0;
-    
-#if L3GD20_USE_SPI
+#if (L3GD20_USE_SPI)
+  if (devp->state == L3GD20_STOP) {
 #if	L3GD20_SHARED_SPI
     spiAcquireBus((devp)->config->spip);
     spiStart((devp)->config->spip,
              (devp)->config->spicfg);
 #endif /* L3GD20_SHARED_SPI */
-
-    l3gd20SPIWriteRegister(devp->config->spip, L3GD20_AD_CTRL_REG1, 
-                           1, &cr1);
+    l3gd20SPIWriteRegister(devp->config->spip, L3GD20_AD_CTRL_REG1,
+                           L3GD20_PM_POWER_DOWN | L3GD20_AE_DISABLED);
     spiStop((devp)->config->spip);
-    
 #if	L3GD20_SHARED_SPI
     spiReleaseBus((devp)->config->spip);
-#endif /* L3GD20_SHARED_SPI */ 
+#endif /* L3GD20_SHARED_SPI */    
+  }			  
 #endif /* L3GD20_USE_SPI */
-  }			 
   devp->state = L3GD20_STOP;
 }
 /** @} */

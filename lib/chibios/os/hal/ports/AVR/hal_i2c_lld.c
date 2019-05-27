@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    hal_i2c_lld.c
+ * @file    AVR/i2c_lld.c
  * @brief   AVR I2C subsystem low level driver source.
  *
  * @addtogroup I2C
@@ -76,12 +76,10 @@ OSAL_IRQ_HANDLER(TWI_vect) {
     if (i2cp->txidx < i2cp->txbytes) {
       TWDR = i2cp->txbuf[i2cp->txidx++];
       TWCR = ((1 << TWINT) | (1 << TWEN) | (1 << TWIE));
-    }
-    else {
+    } else {
       if (i2cp->rxbuf && i2cp->rxbytes) {
         TWCR = ((1 << TWSTA) | (1 << TWINT) | (1 << TWEN) | (1 << TWIE));
-      }
-      else {
+      } else {
         TWCR = ((1 << TWSTO) | (1 << TWINT) | (1 << TWEN));
         _i2c_wakeup_isr(i2cp);
       }
@@ -90,8 +88,7 @@ OSAL_IRQ_HANDLER(TWI_vect) {
   case TWI_MASTER_RX_ADDR_ACK:
     if (i2cp->rxidx == (i2cp->rxbytes - 1)) {
       TWCR = ((1 << TWINT) | (1 << TWEN) | (1 << TWIE));
-    }
-    else {
+    } else {
       TWCR = ((1 << TWEA) | (1 << TWINT) | (1 << TWEN) | (1 << TWIE));
     }
     break;
@@ -99,8 +96,7 @@ OSAL_IRQ_HANDLER(TWI_vect) {
     i2cp->rxbuf[i2cp->rxidx++] = TWDR;
     if (i2cp->rxidx == (i2cp->rxbytes - 1)) {
       TWCR = ((1 << TWINT) | (1 << TWEN) | (1 << TWIE));
-    }
-    else {
+    } else {
       TWCR = ((1 << TWEA) | (1 << TWINT) | (1 << TWEN) | (1 << TWIE));
     }
     break;
@@ -151,7 +147,7 @@ void i2c_lld_init(void) {
 /**
  * @brief   Configures and activates the I2C peripheral.
  *
- * @param[in] i2cp  pointer to the @p I2CDriver object
+ * @param[in] i2cp      pointer to the @p I2CDriver object
  *
  * @notapi
  */
@@ -173,7 +169,7 @@ void i2c_lld_start(I2CDriver *i2cp) {
 /**
  * @brief   Deactivates the I2C peripheral.
  *
- * @param[in] i2cp  pointer to the @p I2CDriver object
+ * @param[in] i2cp      pointer to the @p I2CDriver object
  *
  * @notapi
  */
@@ -188,14 +184,14 @@ void i2c_lld_stop(I2CDriver *i2cp) {
 /**
  * @brief   Receives data via the I2C bus as master.
  *
- * @param[in]   i2cp      pointer to the @p I2CDriver object
- * @param[in]   addr      slave device address
- * @param[out]  rxbuf     pointer to the receive buffer
- * @param[in]   rxbytes   number of bytes to be received
- * @param[in]   timeout   the number of ticks before the operation timeouts,
- *                        the following special values are allowed:
- *                        - @a TIME_INFINITE no timeout.
- *                      
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ * @param[in] addr      slave device address
+ * @param[out] rxbuf    pointer to the receive buffer
+ * @param[in] rxbytes   number of bytes to be received
+ * @param[in] timeout   the number of ticks before the operation timeouts,
+ *                      the following special values are allowed:
+ *                      - @a TIME_INFINITE no timeout.
+ *                      .
  * @return              The operation status.
  * @retval MSG_OK       if the function succeeded.
  * @retval MSG_RESET    if one or more I2C errors occurred, the errors can
@@ -227,16 +223,16 @@ msg_t i2c_lld_master_receive_timeout(I2CDriver *i2cp, i2caddr_t addr,
 /**
  * @brief   Transmits data via the I2C bus as master.
  *
- * @param[in]   i2cp      pointer to the @p I2CDriver object
- * @param[in]   addr      slave device address
- * @param[in]   txbuf     pointer to the transmit buffer
- * @param[in]   txbytes   number of bytes to be transmitted
- * @param[out]  rxbuf     pointer to the receive buffer
- * @param[in]   rxbytes   number of bytes to be received
- * @param[in]   timeout   the number of ticks before the operation timeouts,
- *                        the following special values are allowed:
- *                        - @a TIME_INFINITE no timeout.
- *                      
+ * @param[in] i2cp      pointer to the @p I2CDriver object
+ * @param[in] addr      slave device address
+ * @param[in] txbuf     pointer to the transmit buffer
+ * @param[in] txbytes   number of bytes to be transmitted
+ * @param[out] rxbuf    pointer to the receive buffer
+ * @param[in] rxbytes   number of bytes to be received
+ * @param[in] timeout   the number of ticks before the operation timeouts,
+ *                      the following special values are allowed:
+ *                      - @a TIME_INFINITE no timeout.
+ *                      .
  * @return              The operation status.
  * @retval MSG_OK       if the function succeeded.
  * @retval MSG_RESET    if one or more I2C errors occurred, the errors can

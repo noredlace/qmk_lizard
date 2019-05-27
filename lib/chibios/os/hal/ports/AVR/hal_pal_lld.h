@@ -15,22 +15,22 @@
 */
 
 /**
- * @file	hal_pal_lld.h
+ * @file	AVR/pal_lld.h
  * @brief	AVR GPIO low level driver header.
  *
  * @addtogroup PAL
  * @{
  */
 
-#ifndef HAL_PAL_LLD_H
-#define HAL_PAL_LLD_H
+#ifndef _PAL_LLD_H_
+#define _PAL_LLD_H_
 
 #include "avr_pins.h"
 
 #if HAL_USE_PAL || defined(__DOXYGEN__)
 
 /*===========================================================================*/
-/* Unsupported modes and specific modes.                                     */
+/* Unsupported modes and specific modes                                      */
 /*===========================================================================*/
 
 #undef PAL_MODE_INPUT_PULLDOWN
@@ -227,9 +227,10 @@ typedef volatile avr_gpio_registers_t * ioportid_t;
 #define IOPORTSPI1  ((volatile avr_gpio_registers_t *)&PIN_SPI1)
 #endif
 
+
 /*===========================================================================*/
 /* Implementation, some of the following macros could be implemented as      */
-/* functions, if so please put them in hal_pal_lld.c.                        */
+/* functions, if so please put them in pal_lld.c.                            */
 /*===========================================================================*/
 
 /**
@@ -326,6 +327,6 @@ extern "C" {
 
 #endif /* HAL_USE_PAL */
 
-#endif /* HAL_PAL_LLD_H */
+#endif /* _PAL_LLD_H_ */
 
 /** @} */

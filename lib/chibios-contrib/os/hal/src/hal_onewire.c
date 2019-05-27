@@ -46,7 +46,7 @@ on every timer overflow event.
  */
 
 /**
- * @file    hal_onewire.c
+ * @file    onewire.c
  * @brief   1-wire Driver code.
  *
  * @addtogroup onewire
@@ -58,7 +58,6 @@ on every timer overflow event.
 #if (HAL_USE_ONEWIRE == TRUE) || defined(__DOXYGEN__)
 
 #include <string.h>
-#include <limits.h>
 
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
@@ -173,7 +172,7 @@ static void ow_bus_active(onewireDriver *owp) {
  * @brief     Function performing read of single bit.
  * @note      It must be callable from any context.
  */
-static ioline_t ow_read_bit(onewireDriver *owp) {
+static uint_fast8_t ow_read_bit(onewireDriver *owp) {
 #if ONEWIRE_SYNTH_SEARCH_TEST
   (void)owp;
   return _synth_ow_read_bit();
@@ -222,7 +221,7 @@ static void pwm_search_rom_cb(PWMDriver *pwmp) {
  *
  * @notapi
  */
-static void ow_write_bit_I(onewireDriver *owp, ioline_t bit) {
+static void ow_write_bit_I(onewireDriver *owp, uint_fast8_t bit) {
 #if ONEWIRE_SYNTH_SEARCH_TEST
   _synth_ow_write_bit(owp, bit);
 #else
@@ -251,6 +250,7 @@ static void ow_write_bit_I(onewireDriver *owp, ioline_t bit) {
 static void ow_reset_cb(PWMDriver *pwmp, onewireDriver *owp) {
 
   owp->reg.slave_present = (PAL_LOW == ow_read_bit(owp));
+
   osalSysLockFromISR();
   pwmDisableChannelI(pwmp, owp->config->sample_channel);
   osalThreadResumeI(&owp->thread, MSG_OK);
@@ -348,11 +348,12 @@ static void ow_write_bit_cb(PWMDriver *pwmp, onewireDriver *owp) {
  * @param[in] sr        pointer to the @p onewire_search_rom_t helper structure
  * @param[in] bit       discovered bit to be stored in helper structure
  */
-static void store_bit(onewire_search_rom_t *sr, uint8_t bit) {
+static void store_bit(onewire_search_rom_t *sr, uint_fast8_t bit) {
 
   size_t rb = sr->reg.rombit;
 
-  sr->retbuf[rb / CHAR_BIT] |= bit << (rb % CHAR_BIT);
+  /*             / 8                % 8                                     */
+  sr->retbuf[rb >> 3] |= bit << (rb & 7);
   sr->reg.rombit++;
 }
 
@@ -364,9 +365,9 @@ static void store_bit(onewire_search_rom_t *sr, uint8_t bit) {
  *                      'search ROM' helper structure
  * @param[in] bit       number of bit [0..63]
  */
-static uint8_t extract_path_bit(const uint8_t *path, size_t bit) {
-
-  return (path[bit / CHAR_BIT] >> (bit % CHAR_BIT)) & 1;
+static uint_fast8_t extract_path_bit(const uint8_t *path, uint_fast8_t bit) {
+  /*                / 8          % 8                                        */
+  return (path[bit >> 3] >> (bit & 7)) & 1;
 }
 
 /**
@@ -376,9 +377,9 @@ static uint8_t extract_path_bit(const uint8_t *path, size_t bit) {
  *
  * @param[in,out] sr    pointer to the @p onewire_search_rom_t helper structure
  */
-static uint8_t collision_handler(onewire_search_rom_t *sr) {
+static uint_fast8_t collision_handler(onewire_search_rom_t *sr) {
 
-  uint8_t bit;
+  uint_fast8_t bit;
 
   switch(sr->reg.search_iter) {
   case ONEWIRE_SEARCH_ROM_NEXT:
@@ -660,7 +661,7 @@ bool onewireReset(onewireDriver *owp) {
   pwmcfg->channels[mch].callback = NULL;
   pwmcfg->channels[mch].mode = owp->config->pwmmode;
   pwmcfg->channels[sch].callback = pwm_reset_cb;
-  pwmcfg->channels[sch].mode = PWM_OUTPUT_DISABLED;
+  pwmcfg->channels[sch].mode = PWM_OUTPUT_ACTIVE_LOW;
 
   ow_bus_active(owp);
 
@@ -679,7 +680,7 @@ bool onewireReset(onewireDriver *owp) {
 }
 
 /**
- * @brief     Read some bytes from slave device.
+ * @brief     Read some bites from slave device.
  *
  * @param[in] owp       pointer to the @p onewireDriver object
  * @param[out] rxbuf    pointer to the buffer for read data
@@ -713,7 +714,7 @@ void onewireRead(onewireDriver *owp, uint8_t *rxbuf, size_t rxbytes) {
   pwmcfg->channels[mch].callback = NULL;
   pwmcfg->channels[mch].mode = owp->config->pwmmode;
   pwmcfg->channels[sch].callback = pwm_read_bit_cb;
-  pwmcfg->channels[sch].mode = PWM_OUTPUT_DISABLED;
+  pwmcfg->channels[sch].mode = PWM_OUTPUT_ACTIVE_LOW;
 
   ow_bus_active(owp);
   osalSysLock();
@@ -727,7 +728,7 @@ void onewireRead(onewireDriver *owp, uint8_t *rxbuf, size_t rxbytes) {
 }
 
 /**
- * @brief     Write some bytes to slave device.
+ * @brief     Read some bites from slave device.
  *
  * @param[in] owp           pointer to the @p onewireDriver object
  * @param[in] txbuf         pointer to the buffer with data to be written
@@ -847,7 +848,7 @@ size_t onewireSearchRom(onewireDriver *owp, uint8_t *result,
     pwmcfg->channels[mch].callback = NULL;
     pwmcfg->channels[mch].mode = owp->config->pwmmode;
     pwmcfg->channels[sch].callback = pwm_search_rom_cb;
-    pwmcfg->channels[sch].mode = PWM_OUTPUT_DISABLED;
+    pwmcfg->channels[sch].mode = PWM_OUTPUT_ACTIVE_LOW;
 
     ow_bus_active(owp);
     osalSysLock();
@@ -881,7 +882,7 @@ size_t onewireSearchRom(onewireDriver *owp, uint8_t *result,
  * Include test code (if enabled).
  */
 #if ONEWIRE_SYNTH_SEARCH_TEST
-#include "synth_searchrom.c"
+#include "search_rom_synth.c"
 #endif
 
 #endif /* HAL_USE_ONEWIRE */

@@ -55,19 +55,14 @@
 #define CH_LICENSE_GPL                      0
 #define CH_LICENSE_GPL_EXCEPTION            1
 #define CH_LICENSE_COMMERCIAL_FREE          2
-#define CH_LICENSE_COMMERCIAL_DEV_1000      3
-#define CH_LICENSE_COMMERCIAL_DEV_5000      4
-#define CH_LICENSE_COMMERCIAL_FULL          5
-#define CH_LICENSE_COMMERCIAL_RUNTIME       6
-#define CH_LICENSE_PARTNER                  7
+#define CH_LICENSE_COMMERCIAL_DEVELOPER     3
+#define CH_LICENSE_COMMERCIAL_FULL          4
+#define CH_LICENSE_PARTNER                  5
 /** @} */
 
 #include "chcustomer.h"
 #if CH_LICENSE == CH_LICENSE_PARTNER
 #include "chpartner.h"
-#endif
-#if CH_LICENSE == CH_LICENSE_COMMERCIAL_RUNTIME
-#include "chruntime.h"
 #endif
 
 /*===========================================================================*/
@@ -125,23 +120,15 @@
 #define CH_LICENSE_MAX_DEPLOY               CH_DEPLOY_UNLIMITED
 
 #elif CH_LICENSE == CH_LICENSE_COMMERCIAL_FREE
-#define CH_LICENSE_TYPE_STRING              "Zero Cost Registered License for 500 Cores"
+#define CH_LICENSE_TYPE_STRING              "Zero Cost Registered License"
 #define CH_LICENSE_ID_STRING                "N/A"
-#define CH_LICENSE_ID_CODE                  "2017-0000"
+#define CH_LICENSE_ID_CODE                  "2015-0000"
 #define CH_LICENSE_MODIFIABLE_CODE          FALSE
 #define CH_LICENSE_FEATURES                 CH_FEATURES_INTERMEDIATE
 #define CH_LICENSE_MAX_DEPLOY               500
 
-#elif CH_LICENSE == CH_LICENSE_COMMERCIAL_DEV_1000
-#define CH_LICENSE_TYPE_STRING              "Developer Commercial License for 1000 Cores"
-#define CH_LICENSE_ID_STRING                CH_CUSTOMER_ID_STRING
-#define CH_LICENSE_ID_CODE                  CH_CUSTOMER_ID_CODE
-#define CH_LICENSE_MODIFIABLE_CODE          TRUE
-#define CH_LICENSE_FEATURES                 CH_FEATURES_FULL
-#define CH_LICENSE_DEPLOY_LIMIT             1000
-
-#elif CH_LICENSE == CH_LICENSE_COMMERCIAL_DEV_5000
-#define CH_LICENSE_TYPE_STRING              "Developer Commercial License for 5000 Cores"
+#elif CH_LICENSE == CH_LICENSE_COMMERCIAL_DEVELOPER
+#define CH_LICENSE_TYPE_STRING              "Developer-Only Commercial License"
 #define CH_LICENSE_ID_STRING                CH_CUSTOMER_ID_STRING
 #define CH_LICENSE_ID_CODE                  CH_CUSTOMER_ID_CODE
 #define CH_LICENSE_MODIFIABLE_CODE          TRUE
@@ -149,20 +136,12 @@
 #define CH_LICENSE_DEPLOY_LIMIT             5000
 
 #elif CH_LICENSE == CH_LICENSE_COMMERCIAL_FULL
-#define CH_LICENSE_TYPE_STRING              "Full Commercial License for Unlimited Deployment"
+#define CH_LICENSE_TYPE_STRING              "Full Commercial License"
 #define CH_LICENSE_ID_STRING                CH_CUSTOMER_ID_STRING
 #define CH_LICENSE_ID_CODE                  CH_CUSTOMER_ID_CODE
 #define CH_LICENSE_MODIFIABLE_CODE          TRUE
 #define CH_LICENSE_FEATURES                 CH_FEATURES_FULL
 #define CH_LICENSE_MAX_DEPLOY               CH_DEPLOY_UNLIMITED
-
-#elif CH_LICENSE == CH_LICENSE_COMMERCIAL_RUNTIME
-#define CH_LICENSE_TYPE_STRING              "Runtime Commercial License"
-#define CH_LICENSE_ID_STRING                CH_CUSTOMER_ID_STRING
-#define CH_LICENSE_ID_CODE                  CH_CUSTOMER_ID_CODE
-#define CH_LICENSE_MODIFIABLE_CODE          TRUE
-#define CH_LICENSE_FEATURES                 CH_FEATURES_FULL
-#define CH_LICENSE_MAX_DEPLOY               CH_RUNTIME_MAX_DEPLOY
 
 #elif CH_LICENSE == CH_LICENSE_PARTNER
 #define CH_LICENSE_TYPE_STRING              "Partners Special Commercial License"

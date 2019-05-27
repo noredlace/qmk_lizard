@@ -230,9 +230,6 @@
 #define USB_EP_MODE_TYPE_INTR           0x0003U /**< Interrupt endpoint.    */
 /** @} */
 
-#define USB_IN_STATE                    0x08U
-#define USB_OUT_STATE                   0x10U
-
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
@@ -288,13 +285,13 @@ typedef enum {
  * @brief   Type of an endpoint zero state machine states.
  */
 typedef enum {
-  USB_EP0_STP_WAITING = 0U,                     /**< Waiting for SETUP data.*/
-  USB_EP0_IN_TX = USB_IN_STATE | 1U,            /**< Transmitting.          */
-  USB_EP0_IN_WAITING_TX0 = USB_IN_STATE | 2U,   /**< Waiting transmit 0.    */
-  USB_EP0_IN_SENDING_STS = USB_IN_STATE | 3U,   /**< Sending status.        */
-  USB_EP0_OUT_WAITING_STS = USB_OUT_STATE | 4U, /**< Waiting status.        */
-  USB_EP0_OUT_RX = USB_OUT_STATE | 5U,          /**< Receiving.             */
-  USB_EP0_ERROR = 6U                            /**< Error, EP0 stalled.    */
+  USB_EP0_WAITING_SETUP,                /**< Waiting for SETUP data.        */
+  USB_EP0_TX,                           /**< Transmitting.                  */
+  USB_EP0_WAITING_TX0,                  /**< Waiting transmit 0.            */
+  USB_EP0_WAITING_STS,                  /**< Waiting status.                */
+  USB_EP0_RX,                           /**< Receiving.                     */
+  USB_EP0_SENDING_STS,                  /**< Sending status.                */
+  USB_EP0_ERROR                         /**< Error, EP0 stalled.            */
 } usbep0state_t;
 
 /**
@@ -304,10 +301,9 @@ typedef enum {
   USB_EVENT_RESET = 0,                  /**< Driver has been reset by host. */
   USB_EVENT_ADDRESS = 1,                /**< Address assigned.              */
   USB_EVENT_CONFIGURED = 2,             /**< Configuration selected.        */
-  USB_EVENT_UNCONFIGURED = 3,           /**< Configuration removed.         */
-  USB_EVENT_SUSPEND = 4,                /**< Entering suspend mode.         */
-  USB_EVENT_WAKEUP = 5,                 /**< Leaving suspend mode.          */
-  USB_EVENT_STALLED = 6                 /**< Endpoint 0 error, stalled.     */
+  USB_EVENT_SUSPEND = 3,                /**< Entering suspend mode.         */
+  USB_EVENT_WAKEUP = 4,                 /**< Leaving suspend mode.          */
+  USB_EVENT_STALLED = 5                 /**< Endpoint 0 error, stalled.     */
 } usbevent_t;
 
 /**
@@ -620,7 +616,6 @@ extern "C" {
 #endif
   bool usbStallReceiveI(USBDriver *usbp, usbep_t ep);
   bool usbStallTransmitI(USBDriver *usbp, usbep_t ep);
-  void usbWakeupHost(USBDriver *usbp);
   void _usb_reset(USBDriver *usbp);
   void _usb_suspend(USBDriver *usbp);
   void _usb_wakeup(USBDriver *usbp);

@@ -66,12 +66,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef POINTING_DEVICE_ENABLE
 #   include "pointing_device.h"
 #endif
-#ifdef MIDI_ENABLE
-#   include "process_midi.h"
-#endif
-#ifdef HD44780_ENABLE
-#   include "hd44780.h"
-#endif
 
 #ifdef MATRIX_HAS_GHOST
 extern const uint16_t keymaps[][MATRIX_ROWS][MATRIX_COLS];
@@ -120,44 +114,19 @@ static inline bool has_ghost_in_row(uint8_t row, matrix_row_t rowdata)
 
 #endif
 
-void disable_jtag(void) {
-// To use PORTF disable JTAG with writing JTD bit twice within four cycles.
-#if (defined(__AVR_AT90USB1286__) || defined(__AVR_AT90USB1287__) || defined(__AVR_ATmega32U4__))
-    MCUCR |= _BV(JTD);
-    MCUCR |= _BV(JTD);
-#endif
-}
-
-/** \brief matrix_setup
- *
- * FIXME: needs doc
- */
 __attribute__ ((weak))
 void matrix_setup(void) {
 }
 
-/** \brief keyboard_setup
- *
- * FIXME: needs doc
- */
 void keyboard_setup(void) {
-    disable_jtag();
     matrix_setup();
 }
 
-/** \brief is_keyboard_master
- *
- * FIXME: needs doc
- */
 __attribute__((weak))
 bool is_keyboard_master(void) {
     return true;
 }
 
-/** \brief keyboard_init
- *
- * FIXME: needs doc
- */
 void keyboard_init(void) {
     timer_init();
     matrix_init();
@@ -195,16 +164,8 @@ void keyboard_init(void) {
 #endif
 }
 
-/** \brief Keyboard task: Do keyboard routine jobs
- *
- * Do routine keyboard jobs:
- *
- * * scan matrix
- * * handle mouse movements
- * * run visualizer code
- * * handle midi commands
- * * light LEDs
- *
+/*
+ * Do keyboard routine jobs: scan mantrix, light LEDs, ...
  * This is repeatedly called as fast as possible.
  */
 void keyboard_task(void)
@@ -216,9 +177,6 @@ void keyboard_task(void)
     static uint8_t led_status = 0;
     matrix_row_t matrix_row = 0;
     matrix_row_t matrix_change = 0;
-#ifdef QMK_KEYS_PER_SCAN
-    uint8_t keys_processed = 0;
-#endif
 
     matrix_scan();
     if (is_keyboard_master()) {
@@ -250,10 +208,6 @@ void keyboard_task(void)
                         });
                         // record a processed key
                         matrix_prev[r] ^= ((matrix_row_t)1<<c);
-#ifdef QMK_KEYS_PER_SCAN
-                        // only jump out if we have processed "enough" keys.
-                        if (++keys_processed >= QMK_KEYS_PER_SCAN)
-#endif
                         // process a key per task call
                         goto MATRIX_LOOP_END;
                     }
@@ -262,10 +216,6 @@ void keyboard_task(void)
         }
     }
     // call with pseudo tick event when no real key event.
-#ifdef QMK_KEYS_PER_SCAN
-    // we can get here with some keys processed now.
-    if (!keys_processed)
-#endif
     action_exec(TICK);
 
 MATRIX_LOOP_END:
@@ -299,10 +249,6 @@ MATRIX_LOOP_END:
     pointing_device_task();
 #endif
 
-#ifdef MIDI_ENABLE
-    midi_task();
-#endif
-
     // update LED
     if (led_status != host_keyboard_leds()) {
         led_status = host_keyboard_leds();
@@ -310,10 +256,6 @@ MATRIX_LOOP_END:
     }
 }
 
-/** \brief keyboard set leds
- *
- * FIXME: needs doc
- */
 void keyboard_set_leds(uint8_t leds)
 {
     if (debug_keyboard) { debug("keyboard_set_led: "); debug_hex8(leds); debug("\n"); }

@@ -133,12 +133,11 @@ INCDIR = $(CHIBIOS)/os/license \
 # Compiler settings
 #
 
-#MCU  = e200zx -meabi -msdata=none -mnew-mnemonics -mregnames # HighTec
-MCU  = e200z4 -meabi -msdata=none -mregnames # Free GCC
+#MCU  = e500mc -meabi -msdata=none -mnew-mnemonics -mregnames
+MCU  = e200zx -meabi -msdata=none -mnew-mnemonics -mregnames
 
-#TRGT = ppc-vle-
-#TRGT = powerpc-eabivle-
-TRGT = ppc-freevle-eabi-
+#TRGT = powerpc-eabi-
+TRGT = ppc-vle-
 CC   = $(TRGT)gcc
 CPPC = $(TRGT)g++
 # Enable loading with g++ only if you need C++ runtime support.

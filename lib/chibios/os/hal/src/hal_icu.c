@@ -104,14 +104,10 @@ void icuStop(ICUDriver *icup) {
   osalDbgCheck(icup != NULL);
 
   osalSysLock();
-
   osalDbgAssert((icup->state == ICU_STOP) || (icup->state == ICU_READY),
                 "invalid state");
-
   icu_lld_stop(icup);
-  icup->config = NULL;
-  icup->state  = ICU_STOP;
-
+  icup->state = ICU_STOP;
   osalSysUnlock();
 }
 

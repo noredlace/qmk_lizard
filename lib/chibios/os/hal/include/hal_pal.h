@@ -98,17 +98,6 @@
 #define PAL_HIGH                        1U
 /** @} */
 
-/**
- * @name    PAL event modes
- * @{
- */
-#define PAL_EVENT_MODE_EDGES_MASK   3U  /**< @brief Mask of edges field.    */
-#define PAL_EVENT_MODE_DISABLED     0U  /**< @brief Channel disabled.       */
-#define PAL_EVENT_MODE_RISING_EDGE  1U  /**< @brief Rising edge callback.   */
-#define PAL_EVENT_MODE_FALLING_EDGE 2U  /**< @brief Falling edge callback.  */
-#define PAL_EVENT_MODE_BOTH_EDGES   3U  /**< @brief Both edges callback.    */
-/** @} */
-
 /*===========================================================================*/
 /* Driver pre-compile time settings.                                         */
 /*===========================================================================*/
@@ -120,11 +109,6 @@
 /*===========================================================================*/
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
-
-/**
- * @brief   Type of a PAL event callback.
- */
-typedef void (*palcallback_t)(void);
 
 #include "hal_pal_lld.h"
 
@@ -221,6 +205,8 @@ typedef struct {
 
 /**
  * @brief   Reads the physical I/O port states.
+ * @note    The default implementation always return zero and computes the
+ *          parameter eventual side effects.
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -238,6 +224,8 @@ typedef struct {
  * @brief   Reads the output latch.
  * @details The purpose of this function is to read back the latched output
  *          value.
+ * @note    The default implementation always return zero and computes the
+ *          parameter eventual side effects.
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -253,6 +241,8 @@ typedef struct {
 
 /**
  * @brief   Writes a bits mask on a I/O port.
+ * @note    The default implementation does nothing except computing the
+ *          parameters eventual side effects.
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -272,6 +262,9 @@ typedef struct {
  *          architectures, for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -292,6 +285,9 @@ typedef struct {
  *          architectures,  for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -312,6 +308,9 @@ typedef struct {
  *          architectures, for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -347,10 +346,6 @@ typedef struct {
 
 /**
  * @brief   Writes a group of bits.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -371,14 +366,11 @@ typedef struct {
   pal_lld_writegroup(port, mask, offset, bits)
 #endif
 
+
 /**
  * @brief   Pads group mode setup.
  * @details This function programs a pads group belonging to the same port
  *          with the specified mode.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    Programming an unknown or unsupported mode is silently ignored.
  * @note    The function can be called from any context.
  *
@@ -398,6 +390,10 @@ typedef struct {
 
 /**
  * @brief   Reads an input pad logic state.
+ * @note    The default implementation not necessarily optimal. Low level
+ *          drivers may  optimize the function by using specific hardware
+ *          or coding.
+ * @note    The default implementation internally uses the @p palReadPort().
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -420,6 +416,11 @@ typedef struct {
  *          architectures, for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
+ * @note    The default implementation internally uses the @p palReadLatch()
+ *          and @p palWritePort().
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -443,6 +444,10 @@ typedef struct {
  *          architectures, for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
+ * @note    The default implementation internally uses the @p palSetPort().
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -462,6 +467,10 @@ typedef struct {
  *          architectures, for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
+ * @note    The default implementation internally uses the @p palClearPort().
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -481,6 +490,10 @@ typedef struct {
  *          architectures, for atomicity and/or portability reasons you may
  *          need to enclose port I/O operations between @p osalSysLock() and
  *          @p osalSysUnlock().
+ * @note    The default implementation is non atomic and not necessarily
+ *          optimal. Low level drivers may  optimize the function by using
+ *          specific hardware or coding.
+ * @note    The default implementation internally uses the @p palTogglePort().
  * @note    The function can be called from any context.
  *
  * @param[in] port      port identifier
@@ -497,10 +510,9 @@ typedef struct {
 /**
  * @brief   Pad mode setup.
  * @details This function programs a pad with the specified mode.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
+ * @note    The default implementation not necessarily optimal. Low level
+ *          drivers may  optimize the function by using specific hardware
+ *          or coding.
  * @note    Programming an unknown or unsupported mode is silently ignored.
  * @note    The function can be called from any context.
  *
@@ -515,41 +527,6 @@ typedef struct {
   palSetGroupMode(port, PAL_PORT_BIT(pad), 0U, mode)
 #else
 #define palSetPadMode(port, pad, mode) pal_lld_setpadmode(port, pad, mode)
-#endif
-
-/**
- * @brief   Pad event enable.
- * @details This function programs an event callback in the specified mode.
- * @note    Programming an unknown or unsupported mode is silently ignored.
- * 
- * @param[in] port      port identifier
- * @param[in] pad       pad number within the port
- * @param[in] mode      pad event mode
- * @param[in] callback  event callback function
- * 
- * @iclass
- */
-#if !defined(pal_lld_enablepadevent) || defined(__DOXYGEN__)
-#define palPadEnableEventI(port, pad, mode, callback)
-#else
-#define palPadEnableEventI(port, pad, mode, callback)                       \
-  pal_lld_enablepadevent(port, pad, mode, callback)
-#endif
-
-/**
- * @brief   Pad event disable.
- * @details This function disables previously programmed event callbacks.
- * 
- * @param[in] port      port identifier
- * @param[in] pad       pad number within the port
- * 
- * @iclass
- */
-#if !defined(pal_lld_disablepadevent) || defined(__DOXYGEN__)
-#define palPadDisableEventI(port, pad)
-#else
-#define palPadDisableEventI(port, pad)                                      \
-  pal_lld_disablepadevent(port, pad)
 #endif
 
 /**
@@ -571,10 +548,6 @@ typedef struct {
 
 /**
  * @brief   Writes a logic state on an output line.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    The function can be called from any context.
  *
  * @param[in] line      line identifier
@@ -591,10 +564,6 @@ typedef struct {
 
 /**
  * @brief   Sets a line logic state to @p PAL_HIGH.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    The function can be called from any context.
  *
  * @param[in] line      line identifier
@@ -609,10 +578,6 @@ typedef struct {
 
 /**
  * @brief   Clears a line logic state to @p PAL_LOW.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    The function can be called from any context.
  *
  * @param[in] line      line identifier
@@ -627,10 +592,6 @@ typedef struct {
 
 /**
  * @brief   Toggles a line logic state.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    The function can be called from any context.
  *
  * @param[in] line      line identifier
@@ -645,10 +606,6 @@ typedef struct {
 
 /**
  * @brief   Line mode setup.
- * @note    The operation is not guaranteed to be atomic on all the
- *          architectures, for atomicity and/or portability reasons you may
- *          need to enclose port I/O operations between @p osalSysLock() and
- *          @p osalSysUnlock().
  * @note    The function can be called from any context.
  *
  * @param[in] line      line identifier
@@ -662,38 +619,6 @@ typedef struct {
 #else
 #define palSetLineMode(line, mode) pal_lld_setlinemode(line, mode)
 #endif
-
-/**
- * @brief   Line event enable.
- *
- * @param[in] line      line identifier
- * @param[in] mode      line event mode
- * @param[in] callback  event callback function
- *
- * @iclass
- */
-#if !defined(pal_lld_lineenableevent) || defined(__DOXYGEN__)
-#define palLineEnableEventI(line, mode, callback)                           \
-  palPadEnableEventI(PAL_PORT(line), PAL_PAD(line), mode, callback)
-#else
-#define palLineEnableEventI(line, mode, callback)                           \
-  pal_lld_lineenableevent(line, mode, callback)
-#endif
-
-/**
- * @brief   Line event disable.
- *
- * @param[in] line      line identifier
- *
- * @iclass
- */
-#if !defined(pal_lld_linedisableevent) || defined(__DOXYGEN__)
-#define palLineDisableEventI(line)                                          \
-  palPadDisableEventI(PAL_PORT(line), PAL_PAD(line))
-#else
-#define palLineDisableEventI(line) pal_lld_linedisableevent(line)
-#endif
-
 /** @} */
 
 /*===========================================================================*/

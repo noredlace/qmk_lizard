@@ -91,14 +91,10 @@ void wdgStop(WDGDriver *wdgp) {
   osalDbgCheck(wdgp != NULL);
 
   osalSysLock();
-
   osalDbgAssert((wdgp->state == WDG_STOP) || (wdgp->state == WDG_READY),
                 "invalid state");
-
   wdg_lld_stop(wdgp);
-  wdgp->config = NULL;
-  wdgp->state  = WDG_STOP;
-
+  wdgp->state = WDG_STOP;
   osalSysUnlock();
 }
 

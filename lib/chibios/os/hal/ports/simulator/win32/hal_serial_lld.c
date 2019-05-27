@@ -103,7 +103,7 @@ static bool connint(SerialDriver *sdp) {
     int addrlen = sizeof(addr);
 
     if ((sdp->com_data = accept(sdp->com_listen, &addr, &addrlen)) == INVALID_SOCKET)
-      return false;
+      return FALSE;
 
     if (ioctlsocket(sdp->com_data, FIONBIO, &nb) != 0) {
       printf("%s: Unable to setup non blocking mode on data socket\n", sdp->com_name);
@@ -112,9 +112,9 @@ static bool connint(SerialDriver *sdp) {
     chSysLockFromISR();
     chnAddFlagsI(sdp, CHN_CONNECTED);
     chSysUnlockFromISR();
-    return true;
+    return TRUE;
   }
-  return false;
+  return FALSE;
 abort:
   if (sdp->com_listen != INVALID_SOCKET)
     closesocket(sdp->com_listen);
@@ -141,22 +141,22 @@ static bool inint(SerialDriver *sdp) {
       chSysLockFromISR();
       chnAddFlagsI(sdp, CHN_DISCONNECTED);
       chSysUnlockFromISR();
-      return false;
+      return FALSE;
     case SOCKET_ERROR:
       if (WSAGetLastError() == WSAEWOULDBLOCK)
-        return false;
+        return FALSE;
       closesocket(sdp->com_data);
       sdp->com_data = INVALID_SOCKET;
-      return false;
+      return FALSE;
     }
     for (i = 0; i < n; i++) {
       chSysLockFromISR();
       sdIncomingDataI(sdp, data[i]);
       chSysUnlockFromISR();
     }
-    return true;
+    return TRUE;
   }
-  return false;
+  return FALSE;
 }
 
 static bool outint(SerialDriver *sdp) {
@@ -172,7 +172,7 @@ static bool outint(SerialDriver *sdp) {
     n = sdRequestDataI(sdp);
     chSysUnlockFromISR();
     if (n < 0)
-      return false;
+      return FALSE;
     data[0] = (uint8_t)n;
     n = send(sdp->com_data, (char *)data, sizeof(data), 0);
     switch (n) {
@@ -182,17 +182,17 @@ static bool outint(SerialDriver *sdp) {
       chSysLockFromISR();
       chnAddFlagsI(sdp, CHN_DISCONNECTED);
       chSysUnlockFromISR();
-      return false;
+      return FALSE;
     case SOCKET_ERROR:
       if (WSAGetLastError() == WSAEWOULDBLOCK)
-        return false;
+        return FALSE;
       closesocket(sdp->com_data);
       sdp->com_data = INVALID_SOCKET;
-      return false;
+      return FALSE;
     }
-    return true;
+    return TRUE;
   }
-  return false;
+  return FALSE;
 }
 
 /*===========================================================================*/
@@ -215,7 +215,7 @@ void sd_lld_init(void) {
   SD1.com_name = "SD1";
 #endif
 
-#if USE_WIN32_SERIAL2
+#if USE_WIN32_SERIAL1
   sdObjectInit(&SD2, NULL, NULL);
   SD2.com_listen = INVALID_SOCKET;
   SD2.com_data = INVALID_SOCKET;
@@ -241,7 +241,7 @@ void sd_lld_start(SerialDriver *sdp, const SerialConfig *config) {
     init(&SD1, SD1_PORT);
 #endif
 
-#if USE_WIN32_SERIAL2
+#if USE_WIN32_SERIAL1
   if (sdp == &SD2)
     init(&SD2, SD2_PORT);
 #endif
@@ -260,17 +260,13 @@ void sd_lld_stop(SerialDriver *sdp) {
 }
 
 bool sd_lld_interrupt_pending(void) {
-  bool b = false;
+  bool b;
 
   CH_IRQ_PROLOGUE();
 
-#if USE_WIN32_SERIAL1
-  b |= connint(&SD1) || inint(&SD1) || outint(&SD1);
-#endif
-
-#if USE_WIN32_SERIAL2
-  b |= connint(&SD2) || inint(&SD2) || outint(&SD2);
-#endif
+  b =  connint(&SD1) || connint(&SD2) ||
+       inint(&SD1)   || inint(&SD2)   ||
+       outint(&SD1)  || outint(&SD2);
 
   CH_IRQ_EPILOGUE();
 

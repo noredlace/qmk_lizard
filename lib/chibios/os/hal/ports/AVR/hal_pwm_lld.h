@@ -20,15 +20,15 @@
 */
 
 /**
- * @file    hal_pwm_lld.h
- * @brief   AVR PWM driver subsystem low level driver header.
+ * @file    AVR/pwm_lld.h
+ * @brief   AVR PWM driver subsystem low level driver.
  *
  * @addtogroup PWM
  * @{
  */
 
-#ifndef HAL_PWM_LLD_H
-#define HAL_PWM_LLD_H
+#ifndef _PWM_LLD_H_
+#define _PWM_LLD_H_
 
 #if HAL_USE_PWM || defined(__DOXYGEN__)
 
@@ -228,6 +228,6 @@ extern "C" {
 
 #endif /* HAL_USE_PWM */
 
-#endif /* HAL_PWM_LLD_H */
+#endif /* _PWM_LLD_H_ */
 
 /** @} */

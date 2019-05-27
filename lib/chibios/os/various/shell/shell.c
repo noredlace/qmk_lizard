@@ -235,7 +235,7 @@ static int get_history(ShellHistory *shp, char *line, int dir) {
 
 #if (SHELL_USE_COMPLETION == TRUE) || defined(__DOXYGEN__)
 static void get_completions(ShellConfig *scfg, char *line) {
-  const ShellCommand *lcp = shell_local_commands;
+  ShellCommand *lcp = shell_local_commands;
   const ShellCommand *scp = scfg->sc_commands;
   char **scmp = scfg->sc_completion;
   char help_cmp[] = "help";
@@ -521,9 +521,9 @@ bool shellGetLine(ShellConfig *scfg, char *line, unsigned size, ShellHistory *sh
 #endif
     if ((c == 8) || (c == 127)) {
       if (p != line) {
-        streamPut(chp, 0x08);
+        streamPut(chp, c);
         streamPut(chp, 0x20);
-        streamPut(chp, 0x08);
+        streamPut(chp, c);
         p--;
       }
       continue;

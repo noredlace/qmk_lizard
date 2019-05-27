@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    hal_usb_lld.c
+ * @file    usb_lld.c
  * @brief   AVR USB subsystem low level driver source.
  *
  * @addtogroup USB

@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef HALCONF_COMMUNITY_H
-#define HALCONF_COMMUNITY_H
+#ifndef _HALCONF_COMMUNITY_H_
+#define _HALCONF_COMMUNITY_H_
 
 /**
  * @brief   Enables the community overlay.
@@ -113,6 +113,6 @@
 #define CRC_USE_MUTUAL_EXCLUSION    TRUE
 #endif
 
-#endif /* HALCONF_COMMUNITY_H */
+#endif /* _HALCONF_COMMUNITY_H_ */
 
 /** @} */

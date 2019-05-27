@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    hal_i2c_lld.h
+ * @file    AVR/i2c_lld.h
  * @brief   AVR I2C subsystem low level driver header.
  *
  * @addtogroup I2C
  * @{
  */
 
-#ifndef HAL_I2C_LLD_H
-#define HAL_I2C_LLD_H
+#ifndef _I2C_LLD_H_
+#define _I2C_LLD_H_
 
 #if HAL_USE_I2C || defined(__DOXYGEN__)
 
@@ -67,9 +67,9 @@
  * @{
  */
 /**
- * @brief     I2C driver enable switch.
- * @details   If set to @p TRUE the support for I2C is included.
- * @note      The default is @p FALSE.
+ * @brief   I2C driver enable switch.
+ * @details If set to @p TRUE the support for I2C is included.
+ * @note    The default is @p FALSE.
  */
 #if !defined(AVR_I2C_USE_I2C1) || defined(__DOXYGEN__)
 #define AVR_I2C_USE_I2C1           FALSE
@@ -109,7 +109,7 @@ typedef struct {
 } I2CConfig;
 
 /**
- * @brief   Structure representing an I2C driver.
+ * @brief Structure representing an I2C driver.
  */
 struct I2CDriver {
   /**
@@ -180,7 +180,7 @@ typedef struct I2CDriver I2CDriver;
 /**
  * @brief   Get errors from I2C driver.
  *
- * @param[in] i2cp  pointer to the @p I2CDriver object
+ * @param[in] i2cp      pointer to the @p I2CDriver object
  *
  * @notapi
  */
@@ -215,6 +215,6 @@ extern "C" {
 
 #endif /* HAL_USE_I2C */
 
-#endif /* HAL_I2C_LLD_H */
+#endif /* _I2C_LLD_H_ */
 
 /** @} */

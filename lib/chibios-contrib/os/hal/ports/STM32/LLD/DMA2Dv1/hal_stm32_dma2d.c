@@ -15,10 +15,11 @@
 */
 
 /**
- * @file    hal_stm32_dma2d.c
+ * @file    stm32_dma2d.c
  * @brief   DMA2D/Chrom-ART driver.
  */
 
+#include "ch.h"
 #include "hal.h"
 
 #include "hal_stm32_dma2d.h"

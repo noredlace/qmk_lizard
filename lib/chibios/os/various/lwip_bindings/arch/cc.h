@@ -68,10 +68,7 @@ typedef uint32_t        mem_ptr_t;
   osalSysHalt(x);                                                          \
 }
 
-#ifndef BYTE_ORDER
 #define BYTE_ORDER LITTLE_ENDIAN
-#endif
-
 #define LWIP_PROVIDE_ERRNO
 
 #endif /* __CC_H__ */

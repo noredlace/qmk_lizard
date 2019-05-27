@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2017 Marco Veeneman
+    Copyright (C) 2014..2016 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,27 +20,27 @@
 static void pwmpcb(PWMDriver *pwmp)
 {
   (void)pwmp;
-  palClearLine(LINE_LED_RED);
-  palClearLine(LINE_LED_GREEN);
-  palClearLine(LINE_LED_BLUE);
+  palClearPad(GPIOF, GPIOF_LED_RED);
+  palClearPad(GPIOF, GPIOF_LED_GREEN);
+  palClearPad(GPIOF, GPIOF_LED_BLUE);
 }
 
 static void pwmc1cb0(PWMDriver *pwmp)
 {
   (void)pwmp;
-  palSetLine(LINE_LED_RED);
+  palSetPad(GPIOF, GPIOF_LED_RED);
 }
 
 static void pwmc1cb1(PWMDriver *pwmp)
 {
   (void)pwmp;
-  palSetLine(LINE_LED_GREEN);
+  palSetPad(GPIOF, GPIOF_LED_GREEN);
 }
 
 static void pwmc1cb2(PWMDriver *pwmp)
 {
   (void)pwmp;
-  palSetLine(LINE_LED_BLUE);
+  palSetPad(GPIOF, GPIOF_LED_BLUE);
 }
 
 static PWMConfig pwmcfg = {
@@ -74,9 +74,9 @@ int main(void)
   halInit();
   chSysInit();
 
-  palSetLineMode(LINE_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetLineMode(LINE_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetLineMode(LINE_LED_BLUE, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOF, GPIOF_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOF, GPIOF_LED_GREEN, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOF, GPIOF_LED_BLUE, PAL_MODE_OUTPUT_PUSHPULL);
 
   /*
    * Start PWM driver

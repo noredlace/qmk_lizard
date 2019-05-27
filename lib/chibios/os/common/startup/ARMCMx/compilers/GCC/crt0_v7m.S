@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    crt0_v7m.S
+ * @file    crt0_v7m.s
  * @brief   Generic ARMv7-M (Cortex-M3/M4/M7) startup file for ChibiOS.
  *
  * @addtogroup ARMCMx_GCC_STARTUP_V7M
@@ -179,12 +179,6 @@
 Reset_Handler:
                 /* Interrupts are globally masked initially.*/
                 cpsid   i
-
-#if CRT0_FORCE_MSP_INIT == TRUE
-                /* MSP stack pointers initialization.*/
-                ldr     r0, =__main_stack_end__
-                msr     MSP, r0
-#endif
 
                 /* PSP stack pointers initialization.*/
                 ldr     r0, =__process_stack_end__

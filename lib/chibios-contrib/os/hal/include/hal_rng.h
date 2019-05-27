@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef HAL_RNG_H_
-#define HAL_RNG_H_
+#ifndef _RNG_H_
+#define _RNG_H_
 
 #if (HAL_USE_RNG == TRUE) || defined(__DOXYGEN__)
 
@@ -131,6 +131,6 @@ extern "C" {
 
 #endif /* HAL_USE_RNG */
 
-#endif /* HAL_RNG_H_ */
+#endif /* _RNG_H_ */
 
 /** @} */

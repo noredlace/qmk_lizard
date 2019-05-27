@@ -1,11 +1,10 @@
 # List of the ChibiOS generic MSP430X startup and linker files.
-STARTUPSRC =
+STARTUPSRC = 
 #$(CHIBIOS_CONTRIB)/os/common/startup/MSP430X/compilers/GCC/vectors.c
+             
+STARTUPASM = 
 
-STARTUPASM =
-
-STARTUPINC = $(CHIBIOS_CONTRIB)/os/common/startup/MSP430X/compilers/GCC \
-$(CHIBIOS_CONTRIB)/os/common/ext/MSP430/inc
+STARTUPINC = $(CHIBIOS_CONTRIB)/os/common/startup/MSP430X/compilers/GCC
 
 STARTUPLD  = $(CHIBIOS_CONTRIB)/os/common/startup/MSP430X/compilers/GCC/ld
 

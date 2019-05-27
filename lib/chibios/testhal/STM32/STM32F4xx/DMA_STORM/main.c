@@ -89,7 +89,6 @@ static const SPIConfig hs_spicfg = {
   NULL,
   GPIOB,
   12,
-  0,
   0
 };
 

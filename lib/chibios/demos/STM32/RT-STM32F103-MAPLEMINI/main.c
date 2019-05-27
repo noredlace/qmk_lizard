@@ -106,7 +106,7 @@ static __attribute__((noreturn)) THD_FUNCTION(Thread1, arg) {
 /*
  * Application entry point.
  */
-int main(void) {
+int __attribute__((noreturn)) main(void) {
 
   /*
    * System initializations.

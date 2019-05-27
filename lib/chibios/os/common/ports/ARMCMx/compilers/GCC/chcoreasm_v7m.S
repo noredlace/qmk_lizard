@@ -18,7 +18,7 @@
 */
 
 /**
- * @file    compilers/GCC/chcoreasm_v7m.S
+ * @file    compilers/GCC/chcoreasm_v7m.s
  * @brief   ARMv7-M architecture port low level code.
  *
  * @addtogroup ARMCMx_GCC_CORE

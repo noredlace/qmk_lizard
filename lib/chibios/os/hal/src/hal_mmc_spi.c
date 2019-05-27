@@ -430,8 +430,7 @@ void mmcStop(MMCDriver *mmcp) {
                 "invalid state");
 
   spiStop(mmcp->config->spip);
-  mmcp->config = NULL;
-  mmcp->state  = BLK_STOP;
+  mmcp->state = BLK_STOP;
 }
 
 /**

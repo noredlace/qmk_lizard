@@ -80,13 +80,16 @@ static void pagesize_check(size_t page_data_size) {
  */
 static void calc_addr(const NANDConfig *cfg, uint32_t block, uint32_t page,
                       uint32_t page_offset, uint8_t *addr, size_t addr_len) {
-  size_t i;
-  uint32_t row;
+  size_t i = 0;
+  uint32_t row = 0;
 
+  /* Incorrect buffer length.*/
   osalDbgCheck(cfg->rowcycles + cfg->colcycles == addr_len);
   osalDbgCheck((block < cfg->blocks) && (page < cfg->pages_per_block) &&
              (page_offset < cfg->page_data_size + cfg->page_spare_size));
 
+  /* convert address to NAND specific */
+  memset(addr, 0, addr_len);
   row = (block * cfg->pages_per_block) + page;
   for (i=0; i<cfg->colcycles; i++){
     addr[i] = page_offset & 0xFF;
@@ -112,14 +115,17 @@ static void calc_addr(const NANDConfig *cfg, uint32_t block, uint32_t page,
  */
 static void calc_blk_addr(const NANDConfig *cfg, uint32_t block,
                           uint8_t *addr, size_t addr_len) {
-  size_t i;
-  uint32_t row;
+  size_t i = 0;
+  uint32_t row = 0;
 
-  osalDbgCheck(cfg->rowcycles == addr_len); /* Incorrect buffer length  */
-  osalDbgCheck(block < cfg->blocks);        /* Overflow                 */
+  /* Incorrect buffer length.*/
+  osalDbgCheck(cfg->rowcycles == addr_len);
+  osalDbgCheck((block < cfg->blocks));
 
+  /* convert address to NAND specific */
+  memset(addr, 0, addr_len);
   row = block * cfg->pages_per_block;
-  for (i=0; i<addr_len; i++) {
+  for (i=0; i<addr_len; i++){
     addr[i] = row & 0xFF;
     row = row >> 8;
   }
@@ -139,13 +145,12 @@ static void calc_blk_addr(const NANDConfig *cfg, uint32_t block,
  */
 static bool read_is_block_bad(NANDDriver *nandp, size_t block) {
 
-  uint16_t badmark0 = nandReadBadMark(nandp, block, 0);
-  uint16_t badmark1 = nandReadBadMark(nandp, block, 1);
-
-  if ((0xFFFF != badmark0) || (0xFFFF != badmark1))
+  if (0xFF != nandReadBadMark(nandp, block, 0))
     return true;
-  else
-    return false;
+  if (0xFF != nandReadBadMark(nandp, block, 1))
+    return true;
+
+  return false;
 }
 
 /**
@@ -230,7 +235,6 @@ void nandStart(NANDDriver *nandp, const NANDConfig *config, bitmap_t *bb_map) {
   pagesize_check(nandp->config->page_data_size);
   nand_lld_start(nandp);
   nandp->state = NAND_READY;
-  nand_lld_reset(nandp);
 
   if (NULL != bb_map) {
     nandp->bb_map = bb_map;
@@ -261,24 +265,24 @@ void nandStop(NANDDriver *nandp) {
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] block         block number
  * @param[in] page          page number related to begin of block
- * @param[out] data         buffer to store data, half word aligned
- * @param[in] datalen       length of data buffer in bytes, half word aligned
+ * @param[out] data         buffer to store data
+ * @param[in] datalen       length of data buffer
  *
  * @api
  */
 void nandReadPageWhole(NANDDriver *nandp, uint32_t block, uint32_t page,
-                       void *data, size_t datalen) {
+                       uint8_t *data, size_t datalen) {
 
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles + cfg->colcycles;
-  uint8_t addr[addrlen];
+  uint8_t addrbuf[8];
+  size_t addrlen = cfg->rowcycles + cfg->colcycles;
 
   osalDbgCheck((nandp != NULL) && (data != NULL));
   osalDbgCheck((datalen <= (cfg->page_data_size + cfg->page_spare_size)));
   osalDbgAssert(nandp->state == NAND_READY, "invalid state");
 
-  calc_addr(cfg, block, page, 0, addr, addrlen);
-  nand_lld_read_data(nandp, data, datalen, addr, addrlen, NULL);
+  calc_addr(cfg, block, page, 0, addrbuf, addrlen);
+  nand_lld_read_data(nandp, data, datalen, addrbuf, addrlen, NULL);
 }
 
 /**
@@ -287,20 +291,20 @@ void nandReadPageWhole(NANDDriver *nandp, uint32_t block, uint32_t page,
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] block         block number
  * @param[in] page          page number related to begin of block
- * @param[in] data          buffer with data to be written, half word aligned
- * @param[in] datalen       length of data buffer in bytes, half word aligned
+ * @param[in] data          buffer with data to be written
+ * @param[in] datalen       length of data buffer
  *
  * @return    The operation status reported by NAND IC (0x70 command).
  *
  * @api
  */
 uint8_t nandWritePageWhole(NANDDriver *nandp, uint32_t block, uint32_t page,
-                           const void *data, size_t datalen) {
+                           const uint8_t *data, size_t datalen) {
 
   uint8_t retval;
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles + cfg->colcycles;
-  uint8_t addr[addrlen];
+  uint8_t addr[8];
+  size_t addrlen = cfg->rowcycles + cfg->colcycles;
 
   osalDbgCheck((nandp != NULL) && (data != NULL));
   osalDbgCheck((datalen <= (cfg->page_data_size + cfg->page_spare_size)));
@@ -317,25 +321,25 @@ uint8_t nandWritePageWhole(NANDDriver *nandp, uint32_t block, uint32_t page,
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] block         block number
  * @param[in] page          page number related to begin of block
- * @param[out] data         buffer to store data, half word aligned
- * @param[in] datalen       length of data buffer in bytes, half word aligned
+ * @param[out] data         buffer to store data
+ * @param[in] datalen       length of data buffer
  * @param[out] ecc          pointer to calculated ECC. Ignored when NULL.
  *
  * @api
  */
 void nandReadPageData(NANDDriver *nandp, uint32_t block, uint32_t page,
-                         void *data, size_t datalen, uint32_t *ecc) {
+                         uint8_t *data, size_t datalen, uint32_t *ecc) {
 
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles + cfg->colcycles;
-  uint8_t addr[addrlen];
+  uint8_t addrbuf[8];
+  size_t addrlen = cfg->rowcycles + cfg->colcycles;
 
   osalDbgCheck((nandp != NULL) && (data != NULL));
   osalDbgCheck((datalen <= cfg->page_data_size));
   osalDbgAssert(nandp->state == NAND_READY, "invalid state");
 
-  calc_addr(cfg, block, page, 0, addr, addrlen);
-  nand_lld_read_data(nandp, data, datalen, addr, addrlen, ecc);
+  calc_addr(cfg, block, page, 0, addrbuf, addrlen);
+  nand_lld_read_data(nandp, data, datalen, addrbuf, addrlen, ecc);
 }
 
 /**
@@ -344,8 +348,8 @@ void nandReadPageData(NANDDriver *nandp, uint32_t block, uint32_t page,
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] block         block number
  * @param[in] page          page number related to begin of block
- * @param[in] data          buffer with data to be written, half word aligned
- * @param[in] datalen       length of data buffer in bytes, half word aligned
+ * @param[in] data          buffer with data to be written
+ * @param[in] datalen       length of data buffer
  * @param[out] ecc          pointer to calculated ECC. Ignored when NULL.
  *
  * @return    The operation status reported by NAND IC (0x70 command).
@@ -353,12 +357,12 @@ void nandReadPageData(NANDDriver *nandp, uint32_t block, uint32_t page,
  * @api
  */
 uint8_t nandWritePageData(NANDDriver *nandp, uint32_t block, uint32_t page,
-                          const void *data, size_t datalen, uint32_t *ecc) {
+                          const uint8_t *data, size_t datalen, uint32_t *ecc) {
 
   uint8_t retval;
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles + cfg->colcycles;
-  uint8_t addr[addrlen];
+  uint8_t addr[8];
+  size_t addrlen = cfg->rowcycles + cfg->colcycles;
 
   osalDbgCheck((nandp != NULL) && (data != NULL));
   osalDbgCheck((datalen <= cfg->page_data_size));
@@ -375,17 +379,17 @@ uint8_t nandWritePageData(NANDDriver *nandp, uint32_t block, uint32_t page,
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] block         block number
  * @param[in] page          page number related to begin of block
- * @param[out] spare        buffer to store data, half word aligned
- * @param[in] sparelen      length of data buffer in bytes, half word aligned
+ * @param[out] spare        buffer to store data
+ * @param[in] sparelen      length of data buffer
  *
  * @api
  */
 void nandReadPageSpare(NANDDriver *nandp, uint32_t block, uint32_t page,
-                       void *spare, size_t sparelen) {
+                       uint8_t *spare, size_t sparelen) {
 
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles + cfg->colcycles;
-  uint8_t addr[addrlen];
+  uint8_t addr[8];
+  size_t addrlen = cfg->rowcycles + cfg->colcycles;
 
   osalDbgCheck((NULL != spare) && (nandp != NULL));
   osalDbgCheck(sparelen <= cfg->page_spare_size);
@@ -401,26 +405,28 @@ void nandReadPageSpare(NANDDriver *nandp, uint32_t block, uint32_t page,
  * @param[in] nandp         pointer to the @p NANDDriver object
  * @param[in] block         block number
  * @param[in] page          page number related to begin of block
- * @param[in] spare         buffer with spare data to be written, half word aligned
- * @param[in] sparelen      length of data buffer in bytes, half word aligned
+ * @param[in] spare         buffer with spare data to be written
+ * @param[in] sparelen      length of data buffer
  *
  * @return    The operation status reported by NAND IC (0x70 command).
  *
  * @api
  */
 uint8_t nandWritePageSpare(NANDDriver *nandp, uint32_t block, uint32_t page,
-                           const void *spare, size_t sparelen) {
+                           const uint8_t *spare, size_t sparelen) {
 
+  uint8_t retVal;
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles + cfg->colcycles;
-  uint8_t addr[addrlen];
+  uint8_t addr[8];
+  size_t addrlen = cfg->rowcycles + cfg->colcycles;
 
   osalDbgCheck((NULL != spare) && (nandp != NULL));
   osalDbgCheck(sparelen <= cfg->page_spare_size);
   osalDbgAssert(nandp->state == NAND_READY, "invalid state");
 
   calc_addr(cfg, block, page, cfg->page_data_size, addr, addrlen);
-  return nand_lld_write_data(nandp, spare, sparelen, addr, addrlen, NULL);
+  retVal = nand_lld_write_data(nandp, spare, sparelen, addr, addrlen, NULL);
+  return retVal;
 }
 
 /**
@@ -433,10 +439,10 @@ uint8_t nandWritePageSpare(NANDDriver *nandp, uint32_t block, uint32_t page,
  */
 void nandMarkBad(NANDDriver *nandp, uint32_t block) {
 
-  uint16_t bb_mark = 0;
+  uint8_t bb_mark[2] = {0, 0};
 
-  nandWritePageSpare(nandp, block, 0, &bb_mark, sizeof(bb_mark));
-  nandWritePageSpare(nandp, block, 1, &bb_mark, sizeof(bb_mark));
+  nandWritePageSpare(nandp, block, 0, bb_mark, sizeof(bb_mark));
+  nandWritePageSpare(nandp, block, 1, bb_mark, sizeof(bb_mark));
 
   if (NULL != nandp->bb_map)
     bitmapSet(nandp->bb_map, block);
@@ -453,11 +459,11 @@ void nandMarkBad(NANDDriver *nandp, uint32_t block) {
  *
  * @api
  */
-uint16_t nandReadBadMark(NANDDriver *nandp, uint32_t block, uint32_t page) {
-  uint16_t bb_mark;
+uint8_t nandReadBadMark(NANDDriver *nandp, uint32_t block, uint32_t page) {
+  uint8_t bb_mark[1];
 
-  nandReadPageSpare(nandp, block, page, &bb_mark, sizeof(bb_mark));
-  return bb_mark;
+  nandReadPageSpare(nandp, block, page, bb_mark, sizeof(bb_mark));
+  return bb_mark[0];
 }
 
 /**
@@ -472,15 +478,17 @@ uint16_t nandReadBadMark(NANDDriver *nandp, uint32_t block, uint32_t page) {
  */
 uint8_t nandErase(NANDDriver *nandp, uint32_t block) {
 
+  uint8_t retVal;
   const NANDConfig *cfg = nandp->config;
-  const size_t addrlen = cfg->rowcycles;
-  uint8_t addr[addrlen];
+  uint8_t addr[4];
+  size_t addrlen = cfg->rowcycles;
 
   osalDbgCheck(nandp != NULL);
   osalDbgAssert(nandp->state == NAND_READY, "invalid state");
 
   calc_blk_addr(cfg, block, addr, addrlen);
-  return nand_lld_erase(nandp, addr, addrlen);
+  retVal = nand_lld_erase(nandp, addr, addrlen);
+  return retVal;
 }
 
 /**

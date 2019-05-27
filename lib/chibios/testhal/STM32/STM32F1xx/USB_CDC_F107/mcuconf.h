@@ -17,6 +17,8 @@
 #ifndef MCUCONF_H
 #define MCUCONF_H
 
+#define STM32F103_MCUCONF
+
 /*
  * STM32F107 drivers configuration.
  * The following settings override the default settings present in
@@ -30,8 +32,6 @@
  * DMA priorities:
  * 0...3        Lowest...Highest.
  */
-
-#define STM32F107_MCUCONF
 
 /*
  * HAL driver system settings.
@@ -117,8 +117,7 @@
 #define STM32_I2C_I2C2_IRQ_PRIORITY         5
 #define STM32_I2C_I2C1_DMA_PRIORITY         3
 #define STM32_I2C_I2C2_DMA_PRIORITY         3
-#define STM32_I2C_I2C1_DMA_ERROR_HOOK(i2cp) osalSysHalt("DMA failure")
-#define STM32_I2C_I2C2_DMA_ERROR_HOOK(i2cp) osalSysHalt("DMA failure")
+#define STM32_I2C_DMA_ERROR_HOOK(i2cp)      osalSysHalt("DMA failure")
 
 /*
  * ICU driver system settings.

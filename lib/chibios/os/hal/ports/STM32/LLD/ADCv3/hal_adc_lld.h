@@ -16,7 +16,7 @@
 
 /**
  * @file    ADCv3/hal_adc_lld.h
- * @brief   STM32 ADC subsystem low level driver header.
+ * @brief   STM32F3xx ADC subsystem low level driver header.
  *
  * @addtogroup ADC
  * @{
@@ -426,6 +426,7 @@
 #error "Invalid IRQ priority assigned to ADC1"
 #endif
 
+/* ADC IRQ priority tests.*/
 #if STM32_ADC_USE_ADC2 &&                                                   \
     !OSAL_IRQ_IS_VALID_PRIORITY(STM32_ADC_ADC12_IRQ_PRIORITY)
 #error "Invalid IRQ priority assigned to ADC2"

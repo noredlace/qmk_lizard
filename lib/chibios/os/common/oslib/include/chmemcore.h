@@ -70,25 +70,6 @@
  */
 typedef void *(*memgetfunc_t)(size_t size, unsigned align);
 
-/**
- * @brief   Enhanced memory get function.
- */
-typedef void *(*memgetfunc2_t)(size_t size, unsigned align, size_t offset);
-
-/**
- * @brief   Type of memory core object.
- */
-typedef struct {
-  /**
-   * @brief   Next free address.
-   */
-  uint8_t *nextmem;
-  /**
-   * @brief   Final address.
-   */
-  uint8_t *endmem;
-} memcore_t;
-
 /*===========================================================================*/
 /* Module macros.                                                            */
 /*===========================================================================*/
@@ -97,20 +78,12 @@ typedef struct {
 /* External declarations.                                                    */
 /*===========================================================================*/
 
-#if !defined(__DOXYGEN__)
-extern memcore_t ch_memcore;
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
   void _core_init(void);
-  void *chCoreAllocAlignedWithOffsetI(size_t size,
-                                      unsigned align,
-                                      size_t offset);
-  void *chCoreAllocAlignedWithOffset(size_t size,
-                                     unsigned align,
-                                     size_t offset);
+  void *chCoreAllocAlignedI(size_t size, unsigned align);
+  void *chCoreAllocAligned(size_t size, unsigned align);
   size_t chCoreGetStatusX(void);
 #ifdef __cplusplus
 }
@@ -119,45 +92,6 @@ extern "C" {
 /*===========================================================================*/
 /* Module inline functions.                                                  */
 /*===========================================================================*/
-
-/**
- * @brief   Allocates a memory block.
- * @details The allocated block is guaranteed to be properly aligned to the
- *          specified alignment.
- *
- * @param[in] size      the size of the block to be allocated.
- * @param[in] align     desired memory alignment
- * @return              A pointer to the allocated memory block.
- * @retval NULL         allocation failed, core memory exhausted.
- *
- * @iclass
- */
-static inline void *chCoreAllocAlignedI(size_t size, unsigned align) {
-
-  return chCoreAllocAlignedWithOffsetI(size, align, 0U);
-}
-
-/**
- * @brief   Allocates a memory block.
- * @details The allocated block is guaranteed to be properly aligned to the
- *          specified alignment.
- *
- * @param[in] size      the size of the block to be allocated
- * @param[in] align     desired memory alignment
- * @return              A pointer to the allocated memory block.
- * @retval NULL         allocation failed, core memory exhausted.
- *
- * @api
- */
-static inline void *chCoreAllocAligned(size_t size, unsigned align) {
-  void *p;
-
-  chSysLock();
-  p = chCoreAllocAlignedWithOffsetI(size, align, 0U);
-  chSysUnlock();
-
-  return p;
-}
 
 /**
  * @brief   Allocates a memory block.
@@ -172,7 +106,7 @@ static inline void *chCoreAllocAligned(size_t size, unsigned align) {
  */
 static inline void *chCoreAllocI(size_t size) {
 
-  return chCoreAllocAlignedWithOffsetI(size, PORT_NATURAL_ALIGN, 0U);
+  return chCoreAllocAlignedI(size, PORT_NATURAL_ALIGN);
 }
 
 /**
@@ -188,7 +122,7 @@ static inline void *chCoreAllocI(size_t size) {
  */
 static inline void *chCoreAlloc(size_t size) {
 
-  return chCoreAllocAlignedWithOffset(size, PORT_NATURAL_ALIGN, 0U);
+  return chCoreAllocAligned(size, PORT_NATURAL_ALIGN);
 }
 
 #endif /* CH_CFG_USE_MEMCORE == TRUE */

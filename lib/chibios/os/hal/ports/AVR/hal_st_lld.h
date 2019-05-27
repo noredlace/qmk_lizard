@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    hal_st_lld.h
+ * @file    AVR/st_lld.h
  * @brief   ST Driver subsystem low level driver header.
  * @details This header is designed to be include-able without having to
  *          include other files from the HAL.
@@ -24,8 +24,8 @@
  * @{
  */
 
-#ifndef HAL_ST_LLD_H
-#define HAL_ST_LLD_H
+#ifndef _ST_LLD_H_
+#define _ST_LLD_H_
 
 #include <avr/io.h>
 
@@ -70,7 +70,7 @@ extern "C" {
 }
 #endif
 
-#if defined(__AVR_ATmega128__) || defined(__AVR_ATmega162__)
+#ifdef __AVR_ATmega128__
 #define TIFR_REG TIFR
 #define TIMSK_REG TIMSK
 #else
@@ -162,6 +162,6 @@ static inline bool st_lld_is_alarm_active(void) {
   return (bool) ((TIMSK_REG & _BV(OCIE1A)) != 0);
 }
 
-#endif /* HAL_ST_LLD_H */
+#endif /* _ST_LLD_H_ */
 
 /** @} */

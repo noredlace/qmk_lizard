@@ -48,7 +48,7 @@
  */
 #define _base_accelerometer_methods_alone                                   \
   /* Invoke the set bias procedure.*/                                       \
-  msg_t (*set_bias)(void *instance, float biases[]);                        \
+  msg_t (*set_bias)(void *instance, int32_t biases[]);                      \
   /* Remove bias stored data.*/                                             \
   msg_t (*reset_bias)(void *instance);                                      \
   /* Invoke the set sensitivity procedure.*/                                \
@@ -98,12 +98,12 @@ typedef struct {
  * @brief   Accelerometer get axes number.
  *
  * @param[in] ip        pointer to a @p BaseAccelerometer class.
- * @return              The number of axes of the BaseAccelerometer
+ * @return              The number of axes of the BaseSensor
  *
  * @api
  */
 #define accelerometerGetAxesNumber(ip)                                      \
-        (ip)->vmt_baseaccelerometer->get_channels_number(ip)
+        (ip)->vmt_baseaccelerometer->get_axes_number(ip)
 
 /**
  * @brief   Accelerometer read raw data.
@@ -138,7 +138,8 @@ typedef struct {
 /**
  * @brief   Updates accelerometer bias data from received buffer.
  * @note    The bias buffer must have the same length of the
- *          the accelerometer axes number.
+ *          the accelerometer axes number. Bias must be computed on
+ *          raw data and is a signed integer.
  *
  *
  * @param[in] ip        pointer to a @p BaseAccelerometer class.

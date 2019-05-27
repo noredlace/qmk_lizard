@@ -81,23 +81,22 @@ endif
 PROJECT = ch
 
 # Imported source files and paths
-CHIBIOS = ../../../../../ChibiOS-RT
-CHIBIOS_CONTRIB = $(CHIBIOS)/../ChibiOS-Contrib
+#CHIBIOS = ../../../../../ChibiOS-RT
+#CHIBIOS_CONTRIB = $(CHIBIOS)/../ChibiOS-Contrib
+CHIBIOS = /home/sdalu/ChibiOS/ChibiOS_16.1.2
+CHIBIOS_CONTRIB = /home/sdalu/ChibiOS/Z/ChibiOS-Contrib
 
 # Startup files.
-include $(CHIBIOS_CONTRIB)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_nrf51.mk
+include $(CHIBIOS_CONTRIB)/os/common/ports/ARMCMx/compilers/GCC/mk/startup_nrf51.mk
 # HAL-OSAL files (optional).
 include $(CHIBIOS)/os/hal/hal.mk
 include $(CHIBIOS_CONTRIB)/os/hal/hal.mk
-include $(CHIBIOS_CONTRIB)/os/hal/ports/NRF5/NRF51822/platform.mk
+include $(CHIBIOS_CONTRIB)/os/hal/ports/NRF51/NRF51822/platform.mk
 include $(CHIBIOS_CONTRIB)/os/hal/boards/NRF51-DK/board.mk
 include $(CHIBIOS)/os/hal/osal/rt/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
-include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
-# Other files (optional).
-include $(CHIBIOS)/test/rt/test.mk
-include $(CHIBIOS)/os/various/shell/shell.mk
+include $(CHIBIOS)/os/rt/ports/ARMCMx/compilers/GCC/mk/port_v6m.mk
 
 
 # Define linker script file here
@@ -113,7 +112,7 @@ CSRC = $(STARTUPSRC) \
        $(PLATFORMSRC) \
        $(BOARDSRC) \
        $(TESTSRC) \
-       $(SHELLSRC) \
+       $(CHIBIOS)/os/various/shell.c \
        $(CHIBIOS)/os/hal/lib/streams/memstreams.c \
        $(CHIBIOS)/os/hal/lib/streams/chprintf.c \
        main.c
@@ -143,15 +142,11 @@ TCSRC =
 TCPPSRC =
 
 # List ASM source files here
-ASMSRC =
-ASMXSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
+ASMSRC = $(STARTUPASM) $(PORTASM) $(OSALASM)
 
-INCDIR = $(CHIBIOS)/os/license \
-         $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
+INCDIR = $(STARTUPINC) $(KERNINC) $(PORTINC) $(OSALINC) \
          $(HALINC) $(PLATFORMINC) $(BOARDINC) $(TESTINC) \
-	 $(SHELLINC) \
-         $(CHIBIOS)/os/hal/lib/streams \
-         $(CHIBIOS)/os/various
+         $(CHIBIOS)/os/hal/lib/streams $(CHIBIOS)/os/various
 
 #
 # Project, sources and paths
@@ -218,7 +213,7 @@ ULIBS =
 # End of user defines
 ##############################################################################
 
-RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/
+RULESPATH = $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC
 include $(RULESPATH)/rules.mk
 
 
@@ -228,8 +223,8 @@ JLINK_PRE_FLASH = w4 4001e504 1
 JLINK_ERASE_ALL = w4 4001e504 2\nw4 4001e50c 1\nsleep 100
 
 
-include $(CHIBIOS_CONTRIB)/os/various/jlink.mk
-include $(CHIBIOS_CONTRIB)/os/various/gdb.mk
+include /home/sdalu/ChibiOS/W/ChibiOS-Contrib/os/various/jlink.mk
+include /home/sdalu/ChibiOS/W/ChibiOS-Contrib/os/various/gdb.mk
 
 flash: all jlink-flash
 debug: gdb-debug

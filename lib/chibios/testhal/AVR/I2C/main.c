@@ -17,11 +17,8 @@
 #include "ch.h"
 #include "hal.h"
 
-static THD_WORKING_AREA(waThread1, 32);
-static THD_FUNCTION(Thread1, arg) {
-
-  (void)arg;
-  chRegSetThreadName("Blinker");
+static WORKING_AREA(waThread1, 32);
+static msg_t Thread1(void *arg) {
 
   while (true) {
     palTogglePad(IOPORT2, PORTB_LED1);

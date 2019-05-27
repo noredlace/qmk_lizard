@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2014..2017 Marco Veeneman
+    Copyright (C) 2014..2016 Marco Veeneman
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ static bool watchdog_timeout(WDGDriver *wdgp)
 {
   (void)wdgp;
 
-  palSetLine(LINE_LED_RED);
+  palSetPad(GPIOF, GPIOF_LED_RED);
 
   /* Return true to prevent a reset on the next timeout.*/
   return true;
@@ -36,7 +36,7 @@ static const WDGConfig wdgcfg =
 {
   TIVA_SYSCLK,
   watchdog_timeout,
-  WDT_TEST_STALL
+  TEST_STALL
 };
 
 /*
@@ -54,10 +54,11 @@ int main(void) {
   halInit();
   chSysInit();
 
-  palSetLineMode(LINE_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
-  palSetLineMode(LINE_LED_BLUE, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOF, GPIOF_LED_RED, PAL_MODE_OUTPUT_PUSHPULL);
+  palSetPadMode(GPIOF, GPIOF_LED_BLUE, PAL_MODE_OUTPUT_PUSHPULL);
 
-  palSetLineMode(LINE_SW1, PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOF, GPIOF_SW1, PAL_MODE_INPUT_PULLUP);
+  palSetPadMode(GPIOF, GPIOF_SW2, PAL_MODE_INPUT_PULLUP);
 
   /*
    * Starting the watchdog driver.
@@ -68,13 +69,13 @@ int main(void) {
    * Normal main() thread activity, it resets the watchdog.
    */
   while (true) {
-    if (palReadLine(LINE_SW1)) {
+    if (palReadPad(GPIOF, GPIOF_SW1)) {
       /* Only reset the watchdog if the button is not pressed */
       wdgReset(&WDGD1);
-      palClearLine(LINE_LED_RED);
+      palClearPad(GPIOF, GPIOF_LED_RED);
     }
 
-    palToggleLine(LINE_LED_BLUE);
+    palTogglePad(GPIOF, GPIOF_LED_BLUE);
 
     chThdSleepMilliseconds(500);
   }

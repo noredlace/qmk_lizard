@@ -38,7 +38,9 @@
 #define EP0_MAX_INSIZE          64
 #define EP0_MAX_OUTSIZE         64
 
-#if STM32_OTG_STEPPING == 1
+#if defined(STM32F7XX)
+#define GCCFG_INIT_VALUE        GCCFG_PWRDWN
+#else
 #if defined(BOARD_OTG_NOVBUSSENS)
 #define GCCFG_INIT_VALUE        (GCCFG_NOVBUSSENS | GCCFG_VBUSASEN |        \
                                  GCCFG_VBUSBSEN | GCCFG_PWRDWN)
@@ -46,14 +48,6 @@
 #define GCCFG_INIT_VALUE        (GCCFG_VBUSASEN | GCCFG_VBUSBSEN |          \
                                  GCCFG_PWRDWN)
 #endif
-
-#elif STM32_OTG_STEPPING == 2
-#if defined(BOARD_OTG_NOVBUSSENS)
-#define GCCFG_INIT_VALUE        GCCFG_PWRDWN
-#else
-#define GCCFG_INIT_VALUE        (GCCFG_VBDEN | GCCFG_PWRDWN)
-#endif
-
 #endif
 
 /*===========================================================================*/
@@ -115,7 +109,7 @@ static const USBEndpointConfig ep0config = {
 static const stm32_otg_params_t fsparams = {
   STM32_USB_OTG1_RX_FIFO_SIZE / 4,
   STM32_OTG1_FIFO_MEM_SIZE,
-  STM32_OTG1_ENDPOINTS
+  STM32_OTG1_ENDOPOINTS_NUMBER
 };
 #endif
 
@@ -123,7 +117,7 @@ static const stm32_otg_params_t fsparams = {
 static const stm32_otg_params_t hsparams = {
   STM32_USB_OTG2_RX_FIFO_SIZE / 4,
   STM32_OTG2_FIFO_MEM_SIZE,
-  STM32_OTG2_ENDPOINTS
+  STM32_OTG2_ENDOPOINTS_NUMBER
 };
 #endif
 
@@ -278,21 +272,19 @@ static void otg_fifo_read_to_buffer(volatile uint32_t *fifop,
 static void otg_rxfifo_handler(USBDriver *usbp) {
   uint32_t sts, cnt, ep;
 
-  /* Popping the event word out of the RX FIFO.*/
   sts = usbp->otg->GRXSTSP;
-
-  /* Event details.*/
-  cnt = (sts & GRXSTSP_BCNT_MASK) >> GRXSTSP_BCNT_OFF;
-  ep  = (sts & GRXSTSP_EPNUM_MASK) >> GRXSTSP_EPNUM_OFF;
-
   switch (sts & GRXSTSP_PKTSTS_MASK) {
+  case GRXSTSP_SETUP_COMP:
+    break;
   case GRXSTSP_SETUP_DATA:
+    cnt = (sts & GRXSTSP_BCNT_MASK) >> GRXSTSP_BCNT_OFF;
+    ep  = (sts & GRXSTSP_EPNUM_MASK) >> GRXSTSP_EPNUM_OFF;
     otg_fifo_read_to_buffer(usbp->otg->FIFO[0], usbp->epc[ep]->setup_buf,
                             cnt, 8);
     break;
-  case GRXSTSP_SETUP_COMP:
-    break;
   case GRXSTSP_OUT_DATA:
+    cnt = (sts & GRXSTSP_BCNT_MASK) >> GRXSTSP_BCNT_OFF;
+    ep  = (sts & GRXSTSP_EPNUM_MASK) >> GRXSTSP_EPNUM_OFF;
     otg_fifo_read_to_buffer(usbp->otg->FIFO[0],
                             usbp->epc[ep]->out_state->rxbuf,
                             cnt,
@@ -301,12 +293,10 @@ static void otg_rxfifo_handler(USBDriver *usbp) {
     usbp->epc[ep]->out_state->rxbuf += cnt;
     usbp->epc[ep]->out_state->rxcnt += cnt;
     break;
-  case GRXSTSP_OUT_COMP:
-    break;
   case GRXSTSP_OUT_GLOBAL_NAK:
-    break;
+  case GRXSTSP_OUT_COMP:
   default:
-    break;
+    ;
   }
 }
 
@@ -418,42 +408,28 @@ static void otg_epout_handler(USBDriver *usbp, usbep_t ep) {
     /* Setup packets handling, setup packets are handled using a
        specific callback.*/
     _usb_isr_invoke_setup_cb(usbp, ep);
+
   }
-
   if ((epint & DOEPINT_XFRC) && (otgp->DOEPMSK & DOEPMSK_XFRCM)) {
-    USBOutEndpointState *osp;
+    /* Receive transfer complete.*/
+    USBOutEndpointState *osp = usbp->epc[ep]->out_state;
 
-    /* OUT state structure pointer for this endpoint.*/
-    osp = usbp->epc[ep]->out_state;
-
-    /* EP0 requires special handling.*/
-    if (ep == 0) {
-
-#if defined(STM32_OTG_SEQUENCE_WORKAROUND)
-      /* If an OUT transaction end interrupt is processed while the state
-         machine is not in an OUT state then it is ignored, this is caused
-         on some devices (L4) apparently injecting spurious data complete
-         words in the RX FIFO.*/
-      if ((usbp->ep0state & USB_OUT_STATE) == 0)
-        return;
-#endif
-
+    /* A short packet always terminates a transaction.*/
+    if (((osp->rxcnt % usbp->epc[ep]->out_maxsize) == 0) &&
+        (osp->rxsize < osp->totsize)) {
       /* In case the transaction covered only part of the total transfer
          then another transaction is immediately started in order to
          cover the remaining.*/
-      if (((osp->rxcnt % usbp->epc[ep]->out_maxsize) == 0) &&
-          (osp->rxsize < osp->totsize)) {
-        osp->rxsize = osp->totsize - osp->rxsize;
-        osp->rxcnt  = 0;
-        osalSysLockFromISR();
-        usb_lld_start_out(usbp, ep);
-        osalSysUnlockFromISR();
-        return;
-      }
+      osp->rxsize = osp->totsize - osp->rxsize;
+      osp->rxcnt  = 0;
+      osalSysLockFromISR();
+      usb_lld_start_out(usbp, ep);
+      osalSysUnlockFromISR();
     }
-
-    /* End on OUT transfer.*/
-    _usb_isr_invoke_out_cb(usbp, ep);
+    else {
+      /* End on OUT transfer.*/
+      _usb_isr_invoke_out_cb(usbp, ep);
+    }
   }
 }
 
@@ -557,7 +533,7 @@ static void usb_lld_serve_interrupt(USBDriver *usbp) {
     }
 
     /* Clear the Remote Wake-up Signaling.*/
-    otgp->DCTL &= ~DCTL_RWUSIG;
+    otgp->DCTL |= DCTL_RWUSIG;
 
     _usb_wakeup(usbp);
   }
@@ -612,36 +588,6 @@ static void usb_lld_serve_interrupt(USBDriver *usbp) {
 
   /* IN/OUT endpoints event handling.*/
   src = otgp->DAINT;
-  if (sts & GINTSTS_OEPINT) {
-    if (src & (1 << 16))
-      otg_epout_handler(usbp, 0);
-    if (src & (1 << 17))
-      otg_epout_handler(usbp, 1);
-    if (src & (1 << 18))
-      otg_epout_handler(usbp, 2);
-    if (src & (1 << 19))
-      otg_epout_handler(usbp, 3);
-#if USB_MAX_ENDPOINTS >= 4
-    if (src & (1 << 20))
-      otg_epout_handler(usbp, 4);
-#endif
-#if USB_MAX_ENDPOINTS >= 5
-    if (src & (1 << 21))
-      otg_epout_handler(usbp, 5);
-#endif
-#if USB_MAX_ENDPOINTS >= 6
-    if (src & (1 << 22))
-      otg_epout_handler(usbp, 6);
-#endif
-#if USB_MAX_ENDPOINTS >= 7
-    if (src & (1 << 23))
-      otg_epout_handler(usbp, 7);
-#endif
-#if USB_MAX_ENDPOINTS >= 8
-    if (src & (1 << 24))
-      otg_epout_handler(usbp, 8);
-#endif
-  }
   if (sts & GINTSTS_IEPINT) {
     if (src & (1 << 0))
       otg_epin_handler(usbp, 0);
@@ -651,25 +597,27 @@ static void usb_lld_serve_interrupt(USBDriver *usbp) {
       otg_epin_handler(usbp, 2);
     if (src & (1 << 3))
       otg_epin_handler(usbp, 3);
-#if USB_MAX_ENDPOINTS >= 4
+#if STM32_USB_USE_OTG2
     if (src & (1 << 4))
       otg_epin_handler(usbp, 4);
-#endif
-#if USB_MAX_ENDPOINTS >= 5
     if (src & (1 << 5))
       otg_epin_handler(usbp, 5);
 #endif
-#if USB_MAX_ENDPOINTS >= 6
-    if (src & (1 << 6))
-      otg_epin_handler(usbp, 6);
-#endif
-#if USB_MAX_ENDPOINTS >= 7
-    if (src & (1 << 7))
-      otg_epin_handler(usbp, 7);
-#endif
-#if USB_MAX_ENDPOINTS >= 8
-    if (src & (1 << 8))
-      otg_epin_handler(usbp, 8);
+  }
+  if (sts & GINTSTS_OEPINT) {
+    if (src & (1 << 16))
+      otg_epout_handler(usbp, 0);
+    if (src & (1 << 17))
+      otg_epout_handler(usbp, 1);
+    if (src & (1 << 18))
+      otg_epout_handler(usbp, 2);
+    if (src & (1 << 19))
+      otg_epout_handler(usbp, 3);
+#if STM32_USB_USE_OTG2
+    if (src & (1 << 20))
+      otg_epout_handler(usbp, 4);
+    if (src & (1 << 21))
+      otg_epout_handler(usbp, 5);
 #endif
   }
 }
@@ -679,6 +627,9 @@ static void usb_lld_serve_interrupt(USBDriver *usbp) {
 /*===========================================================================*/
 
 #if STM32_USB_USE_OTG1 || defined(__DOXYGEN__)
+#if !defined(STM32_OTG1_HANDLER)
+#error "STM32_OTG1_HANDLER not defined"
+#endif
 /**
  * @brief   OTG1 interrupt handler.
  *
@@ -695,6 +646,9 @@ OSAL_IRQ_HANDLER(STM32_OTG1_HANDLER) {
 #endif
 
 #if STM32_USB_USE_OTG2 || defined(__DOXYGEN__)
+#if !defined(STM32_OTG2_HANDLER)
+#error "STM32_OTG2_HANDLER not defined"
+#endif
 /**
  * @brief   OTG2 interrupt handler.
  *
@@ -1005,7 +959,7 @@ void usb_lld_reset(USBDriver *usbp) {
 
   /* EP0 initialization, it is a special case.*/
   usbp->epc[0] = &ep0config;
-  otgp->oe[0].DOEPTSIZ = DOEPTSIZ_STUPCNT(3);
+  otgp->oe[0].DOEPTSIZ = 0;
   otgp->oe[0].DOEPCTL = DOEPCTL_SD0PID | DOEPCTL_USBAEP | DOEPCTL_EPTYP_CTRL |
                         DOEPCTL_MPSIZ(ep0config.out_maxsize);
   otgp->ie[0].DIEPTSIZ = 0;

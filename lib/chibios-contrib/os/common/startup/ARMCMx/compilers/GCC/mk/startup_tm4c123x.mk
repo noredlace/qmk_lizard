@@ -6,7 +6,6 @@ STARTUPASM = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/crt0_v7m.S
 
 STARTUPINC = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC \
              $(CHIBIOS_CONTRIB)/os/common/startup/ARMCMx/devices/TM4C123x \
-             $(CHIBIOS)/os/common/ext/CMSIS/include \
-             $(CHIBIOS_CONTRIB)/os/common/ext/TivaWare
+             $(CHIBIOS)/os/common/ext/CMSIS/include
 
 STARTUPLD  = $(CHIBIOS_CONTRIB)/os/common/startup/ARMCMx/compilers/GCC/ld

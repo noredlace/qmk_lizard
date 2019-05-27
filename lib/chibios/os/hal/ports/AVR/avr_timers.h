@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef AVR_TIMERS_H
-#define AVR_TIMERS_H
+#ifndef _AVR_TIMERS_H_
+#define _AVR_TIMERS_H_
 
 #include "mcuconf.h"
 
@@ -52,4 +52,4 @@
   #error "Timer 5 cannot simultaneously be used by multiple drivers."
 #endif
 
-#endif /* AVR_TIMERS_H */
+#endif /* _AVR_TIMERS_H_ */

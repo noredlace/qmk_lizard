@@ -129,7 +129,6 @@ void canStop(CANDriver *canp) {
 
   /* The low level driver is stopped.*/
   can_lld_stop(canp);
-  canp->config = NULL;
   canp->state  = CAN_STOP;
 
   /* Threads waiting on CAN APIs are notified that the driver has been
@@ -189,8 +188,8 @@ bool canTryTransmitI(CANDriver *canp,
  * @iclass
  */
 bool canTryReceiveI(CANDriver *canp,
-                    canmbx_t mailbox,
-                    CANRxFrame *crfp) {
+                     canmbx_t mailbox,
+                     CANRxFrame *crfp) {
 
   osalDbgCheckClassI();
   osalDbgCheck((canp != NULL) && (crfp != NULL) &&
@@ -230,10 +229,10 @@ bool canTryReceiveI(CANDriver *canp,
  *
  * @api
  */
-msg_t canTransmitTimeout(CANDriver *canp,
-                         canmbx_t mailbox,
-                         const CANTxFrame *ctfp,
-                         systime_t timeout) {
+msg_t canTransmit(CANDriver *canp,
+                  canmbx_t mailbox,
+                  const CANTxFrame *ctfp,
+                  systime_t timeout) {
 
   osalDbgCheck((canp != NULL) && (ctfp != NULL) &&
                (mailbox <= (canmbx_t)CAN_TX_MAILBOXES));
@@ -278,10 +277,10 @@ msg_t canTransmitTimeout(CANDriver *canp,
  *
  * @api
  */
-msg_t canReceiveTimeout(CANDriver *canp,
-                        canmbx_t mailbox,
-                        CANRxFrame *crfp,
-                        systime_t timeout) {
+msg_t canReceive(CANDriver *canp,
+                 canmbx_t mailbox,
+                 CANRxFrame *crfp,
+                 systime_t timeout) {
 
   osalDbgCheck((canp != NULL) && (crfp != NULL) &&
                (mailbox <= (canmbx_t)CAN_RX_MAILBOXES));

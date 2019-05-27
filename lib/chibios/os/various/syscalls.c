@@ -67,7 +67,6 @@
 
 /***************************************************************************/
 
-__attribute__((used))
 int _read_r(struct _reent *r, int file, char * ptr, int len)
 {
   (void)r;
@@ -89,7 +88,6 @@ int _read_r(struct _reent *r, int file, char * ptr, int len)
 
 /***************************************************************************/
 
-__attribute__((used))
 int _lseek_r(struct _reent *r, int file, int ptr, int dir)
 {
   (void)r;
@@ -102,7 +100,6 @@ int _lseek_r(struct _reent *r, int file, int ptr, int dir)
 
 /***************************************************************************/
 
-__attribute__((used))
 int _write_r(struct _reent *r, int file, char * ptr, int len)
 {
   (void)r;
@@ -120,7 +117,6 @@ int _write_r(struct _reent *r, int file, char * ptr, int len)
 
 /***************************************************************************/
 
-__attribute__((used))
 int _close_r(struct _reent *r, int file)
 {
   (void)r;
@@ -131,7 +127,6 @@ int _close_r(struct _reent *r, int file)
 
 /***************************************************************************/
 
-__attribute__((used))
 caddr_t _sbrk_r(struct _reent *r, int incr)
 {
 #if CH_CFG_USE_MEMCORE
@@ -154,7 +149,6 @@ caddr_t _sbrk_r(struct _reent *r, int incr)
 
 /***************************************************************************/
 
-__attribute__((used))
 int _fstat_r(struct _reent *r, int file, struct stat * st)
 {
   (void)r;
@@ -167,7 +161,6 @@ int _fstat_r(struct _reent *r, int file, struct stat * st)
 
 /***************************************************************************/
 
-__attribute__((used))
 int _isatty_r(struct _reent *r, int fd)
 {
   (void)r;

@@ -31,8 +31,8 @@
 /*===========================================================================*/
 
 #if defined(STM32L4XX)
-#define AHB2_EN_MASK    STM32_GPIO_EN_MASK
-#define AHB2_LPEN_MASK  0
+#define AHB1_EN_MASK    STM32_GPIO_EN_MASK
+#define AHB1_LPEN_MASK  0
 
 #else
 #error "missing or unsupported platform for GPIOv3 PAL driver"
@@ -85,7 +85,7 @@ void _pal_lld_init(const PALConfig *config) {
    * Enables the GPIO related clocks.
    */
 #if defined(STM32L4XX)
-  RCC->AHB2ENR |= AHB2_EN_MASK;
+  RCC->AHB2ENR   |= AHB1_EN_MASK;
 #endif
 
   /*
@@ -163,7 +163,7 @@ void _pal_lld_setgroupmode(ioportid_t port,
       port->ASCR    = (port->ASCR & ~m1) | ascr;
       port->OSPEEDR = (port->OSPEEDR & ~m2) | ospeedr;
       port->PUPDR   = (port->PUPDR & ~m2) | pupdr;
-       if ((mode & PAL_STM32_MODE_MASK) == PAL_STM32_MODE_ALTERNATE) {
+       if (moder == PAL_STM32_MODE_ALTERNATE) {
         /* If going in alternate mode then the alternate number is set
            before switching mode in order to avoid glitches.*/
         if (bit < 8)

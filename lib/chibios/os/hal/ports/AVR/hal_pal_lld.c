@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    hal_pal_lld.c
+ * @file    AVR/pal_lld.c
  * @brief   AVR GPIO low level driver code.
  *
  * @addtogroup PAL

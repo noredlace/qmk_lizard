@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    crt0.S
+ * @file    crt0.s
  * @brief   Generic ARM startup file.
  *
  * @addtogroup ARM_GCC_STARTUP

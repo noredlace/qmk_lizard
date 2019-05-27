@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    hal_adc_lld.h
- * @brief   ADC Driver subsystem low level driver header.
+ * @file    AVR/adc_lld.h
+ * @brief   ADC Driver subsystem low level driver source.
  *
  * @addtogroup ADC
  * @{
  */
 
-#ifndef HAL_ADC_LLD_H
-#define HAL_ADC_LLD_H
+#ifndef _ADC_LLD_H_
+#define _ADC_LLD_H_
 
 #if HAL_USE_ADC || defined(__DOXYGEN__)
 
@@ -145,14 +145,14 @@ struct ADCDriver {
   /**
    * @brief Waiting thread.
    */
-  thread_reference_t        thread;
+  Thread                    *thread;
 #endif /* ADC_USE_WAIT */
 #if ADC_USE_MUTUAL_EXCLUSION || defined(__DOXYGEN__)
 #if CH_CFG_USE_MUTEXES || defined(__DOXYGEN__)
   /**
    * @brief Mutex protecting the peripheral.
    */
-  mutex_t                   mutex;
+  Mutex                     mutex;
 #elif CH_CFG_USE_SEMAPHORES
   Semaphore                 semaphore;
 #endif
@@ -193,6 +193,6 @@ extern "C" {
 
 #endif /* HAL_USE_ADC */
 
-#endif /* HAL_ADC_LLD_H */
+#endif /* _ADC_LLD_H_ */
 
 /** @} */

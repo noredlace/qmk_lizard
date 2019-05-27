@@ -61,7 +61,7 @@ endif
 #
 
 # Define project name here
-PROJECT = ch.exe
+PROJECT = ch
 
 # Imported source files and paths
 CHIBIOS = ../../..

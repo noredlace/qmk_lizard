@@ -24,10 +24,6 @@
 
 #include "boot.h"
 
-#if defined(__HIGHTEC__)
-#define se_bge bge
-#endif
-
 #if !defined(__DOXYGEN__)
 
         /* BAM record.*/
@@ -41,35 +37,35 @@
         .type       _reset_address, @function
 _reset_address:
 #if BOOT_PERFORM_CORE_INIT
-        e_bl        _coreinit
+        bl          _coreinit
 #endif
-        e_bl        _ivinit
+        bl          _ivinit
 
 #if BOOT_RELOCATE_IN_RAM
         /*
          * Image relocation in RAM.
          */
-        e_lis       r4, __ram_reloc_start__@h
-        e_or2i      r4, __ram_reloc_start__@l
-        e_lis       r5, __ram_reloc_dest__@h
-        e_or2i      r5, __ram_reloc_dest__@l
-        e_lis       r6, __ram_reloc_end__@h
-        e_or2i      r6, __ram_reloc_end__@l
+        lis         r4, __ram_reloc_start__@h
+        ori         r4, r4, __ram_reloc_start__@l
+        lis         r5, __ram_reloc_dest__@h
+        ori         r5, r5, __ram_reloc_dest__@l
+        lis         r6, __ram_reloc_end__@h
+        ori         r6, r6, __ram_reloc_end__@l
 .relloop:
-        se_cmpl     r4, r6
-        se_bge      .relend
-        se_lwz      r7, 0(r4)
-        se_addi     r4, 4
-        se_stw      r7, 0(r5)
-        se_addi     r5, 4
-        se_b        .relloop
+        cmpl        cr0, r4, r6
+        bge         cr0, .relend
+        lwz         r7, 0(r4)
+        addi        r4, r4, 4
+        stw         r7, 0(r5)
+        addi        r5, r5, 4
+        b           .relloop
 .relend:
-        e_lis       r3, _boot_address@h
-        e_or2i      r3, _boot_address@l
+        lis         r3, _boot_address@h
+        ori         r3, r3, _boot_address@l
         mtctr       r3
-        se_bctrl
+        bctrl
 #else
-        e_b         _boot_address
+        b           _boot_address
 #endif
 
 #if BOOT_PERFORM_CORE_INIT
@@ -112,25 +108,25 @@ _coreinit:
         xor         r29, r29, r29
         xor         r30, r30, r30
         xor         r31, r31, r31
-        e_lis       r4, __ram_start__@h
-        e_or2i      r4, __ram_start__@l
-        e_lis       r5, __ram_end__@h
-        e_or2i      r5, __ram_end__@l
+        lis         r4, __ram_start__@h
+        ori         r4, r4, __ram_start__@l
+        lis         r5, __ram_end__@h
+        ori         r5, r5, __ram_end__@l
 .cleareccloop:
-        se_cmpl     r4, r5
-        se_bge      .cleareccend
-        e_stmw      r16, 0(r4)
-        e_addi      r4, r4, 64
-        se_b        .cleareccloop
+        cmpl        cr0, r4, r5
+        bge         cr0, .cleareccend
+        stmw        r16, 0(r4)
+        addi        r4, r4, 64
+        b           .cleareccloop
 .cleareccend:
 
         /*
          * Branch prediction enabled.
          */
-        e_li        r3, BOOT_BUCSR_DEFAULT
+        li          r3, BOOT_BUCSR_DEFAULT
         mtspr       1013, r3       /* BUCSR */
 
-        se_blr
+        blr
 #endif /* BOOT_PERFORM_CORE_INIT */
 
         /*
@@ -139,52 +135,52 @@ _coreinit:
         .align      2
 _ivinit:
         /* MSR initialization.*/
-        e_lis       r3, BOOT_MSR_DEFAULT@h
-        e_or2i      r3, BOOT_MSR_DEFAULT@l
+        lis         r3, BOOT_MSR_DEFAULT@h
+        ori         r3, r3, BOOT_MSR_DEFAULT@l
         mtMSR       r3
 
         /* IVPR initialization.*/
-        e_lis       r3, __ivpr_base__@h
-        e_or2i      r3, __ivpr_base__@l
+        lis         r3, __ivpr_base__@h
+        ori         r3, r3, __ivpr_base__@l
         mtIVPR      r3
 
-        se_blr
+        blr
 
         .section    .ivors, "ax"
 
         .globl      IVORS
 IVORS:
-        e_b         _IVOR0
+        b           _IVOR0
         .align      4
-        e_b         _IVOR1
+        b           _IVOR1
         .align      4
-        e_b         _IVOR2
+        b           _IVOR2
         .align      4
-        e_b         _IVOR3
+        b           _IVOR3
         .align      4
-        e_b         _IVOR4
+        b           _IVOR4
         .align      4
-        e_b         _IVOR5
+        b           _IVOR5
         .align      4
-        e_b         _IVOR6
+        b           _IVOR6
         .align      4
-        e_b         _IVOR7
+        b           _IVOR7
         .align      4
-        e_b         _IVOR8
+        b           _IVOR8
         .align      4
-        e_b         _IVOR9
+        b           _IVOR9
         .align      4
-        e_b         _IVOR10
+        b           _IVOR10
         .align      4
-        e_b         _IVOR11
+        b           _IVOR11
         .align      4
-        e_b         _IVOR12
+        b           _IVOR12
         .align      4
-        e_b         _IVOR13
+        b           _IVOR13
         .align      4
-        e_b         _IVOR14
+        b           _IVOR14
         .align      4
-        e_b         _IVOR15
+        b           _IVOR15
 
         .section    .handlers, "ax"
 
@@ -211,7 +207,7 @@ _IVOR14:
 _IVOR15:
         .global     _unhandled_exception
 _unhandled_exception:
-        e_b         _unhandled_exception
+        b           _unhandled_exception
 
 #endif /* !defined(__DOXYGEN__) */
 

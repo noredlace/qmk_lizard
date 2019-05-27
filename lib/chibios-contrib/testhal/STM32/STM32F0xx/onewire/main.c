@@ -17,7 +17,7 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "testhal_onewire.h"
+#include "onewire_test.h"
 
 /*
  * Application entry point.

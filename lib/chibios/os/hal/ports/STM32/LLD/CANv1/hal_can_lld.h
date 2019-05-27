@@ -105,14 +105,6 @@
 #endif
 
 /**
- * @brief   CAN3 driver enable switch.
- * @details If set to @p TRUE the support for CAN3 is included.
- */
-#if !defined(STM32_CAN_USE_CAN3) || defined(__DOXYGEN__)
-#define STM32_CAN_USE_CAN3                  FALSE
-#endif
-
-/**
  * @brief   CAN1 interrupt priority level setting.
  */
 #if !defined(STM32_CAN_CAN1_IRQ_PRIORITY) || defined(__DOXYGEN__)
@@ -128,37 +120,9 @@
 #endif
 /** @} */
 
-/**
- * @brief   CAN3 interrupt priority level setting.
- */
-#if !defined(STM32_CAN_CAN3_IRQ_PRIORITY) || defined(__DOXYGEN__)
-#define STM32_CAN_CAN3_IRQ_PRIORITY         11
-#endif
-/** @} */
-
 /*===========================================================================*/
 /* Derived constants and error checks.                                       */
 /*===========================================================================*/
-
-#if !defined(STM32_HAS_CAN1)
-#error "STM32_HAS_CAN1 not defined in registry"
-#endif
-
-#if !defined(STM32_HAS_CAN2)
-#error "STM32_HAS_CAN2 not defined in registry"
-#endif
-
-#if !defined(STM32_HAS_CAN3)
-#error "STM32_HAS_CAN3 not defined in registry"
-#endif
-
-#if (STM32_HAS_CAN1 | STM32_HAS_CAN2) && !defined(STM32_CAN_MAX_FILTERS)
-#error "STM32_CAN_MAX_FILTERS not defined in registry"
-#endif
-
-#if STM32_HAS_CAN3 && !defined(STM32_CAN3_MAX_FILTERS)
-#error "STM32_CAN3_MAX_FILTERS not defined in registry"
-#endif
 
 #if STM32_CAN_USE_CAN1 && !STM32_HAS_CAN1
 #error "CAN1 not present in the selected device"
@@ -168,11 +132,7 @@
 #error "CAN2 not present in the selected device"
 #endif
 
-#if STM32_CAN_USE_CAN3 && !STM32_HAS_CAN3
-#error "CAN2 not present in the selected device"
-#endif
-
-#if !STM32_CAN_USE_CAN1 && !STM32_CAN_USE_CAN2 && !STM32_CAN_USE_CAN3
+#if !STM32_CAN_USE_CAN1 && !STM32_CAN_USE_CAN2
 #error "CAN driver activated but no CAN peripheral assigned"
 #endif
 
@@ -216,7 +176,6 @@ typedef struct {
     uint8_t                 data8[8];       /**< @brief Frame data.         */
     uint16_t                data16[4];      /**< @brief Frame data.         */
     uint32_t                data32[2];      /**< @brief Frame data.         */
-    uint64_t                data64[1];      /**< @brief Frame data.         */
   };
 } CANTxFrame;
 
@@ -247,7 +206,6 @@ typedef struct {
     uint8_t                 data8[8];       /**< @brief Frame data.         */
     uint16_t                data16[4];      /**< @brief Frame data.         */
     uint32_t                data32[2];      /**< @brief Frame data.         */
-    uint64_t                data64[1];      /**< @brief Frame data.         */
   };
 } CANRxFrame;
 
@@ -389,10 +347,6 @@ extern CANDriver CAND1;
 extern CANDriver CAND2;
 #endif
 
-#if STM32_CAN_USE_CAN3 && !defined(__DOXYGEN__)
-extern CANDriver CAND3;
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -411,8 +365,7 @@ extern "C" {
   void can_lld_sleep(CANDriver *canp);
   void can_lld_wakeup(CANDriver *canp);
 #endif /* CAN_USE_SLEEP_MODE */
-  void canSTM32SetFilters(CANDriver *canp, uint32_t can2sb,
-                          uint32_t num, const CANFilter *cfp);
+  void canSTM32SetFilters(uint32_t can2sb, uint32_t num, const CANFilter *cfp);
 #ifdef __cplusplus
 }
 #endif

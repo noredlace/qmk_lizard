@@ -26,9 +26,10 @@
   The work is provided "as is" without warranty of any kind, neither express nor implied.
 */
 
-#ifndef HAL_EEPROM_H_
-#define HAL_EEPROM_H_
+#ifndef __EEPROM_H__
+#define __EEPROM_H__
 
+#include "ch.h"
 #include "hal.h"
 
 #ifndef EEPROM_USE_EE25XX
@@ -139,4 +140,4 @@ msg_t eepfs_get(void *ip);
 #include "hal_ee25xx.h"
 
 #endif /* #if defined(HAL_USE_EEPROM) && HAL_USE_EEPROM */
-#endif /* HAL_EEPROM_H_ */
+#endif /* __EEPROM_H__ */

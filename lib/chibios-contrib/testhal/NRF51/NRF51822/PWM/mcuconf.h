@@ -20,11 +20,10 @@
 /*
  * HAL driver system settings.
  */
-#define NRF5_SERIAL_USE_UART0             TRUE
-#define NRF5_ST_USE_RTC0                  TRUE
-#define NRF5_ST_USE_RTC1                  FALSE
-#define NRF5_ST_USE_TIMER0                FALSE
-#define NRF5_PWM_USE_TIMER0               TRUE
-#define NRF5_PWM_USE_GPIOTE_PPI           TRUE
+#define NRF51_SERIAL_USE_UART0             TRUE
+#define NRF51_ST_USE_RTC0                  TRUE
+#define NRF51_ST_USE_RTC1                  FALSE
+#define NRF51_ST_USE_TIMER0                FALSE
+#define NRF51_PWM_USE_TIMER0               TRUE
 
 #endif /* _MCUCONF_H_ */

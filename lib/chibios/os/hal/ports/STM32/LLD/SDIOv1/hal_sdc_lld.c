@@ -57,6 +57,7 @@ static union {
 } u;
 #endif /* STM32_SDC_SDIO_UNALIGNED_SUPPORT */
 
+
 /**
  * @brief   SDIO default configuration.
  */
@@ -145,7 +146,7 @@ static bool sdc_lld_prepare_read(SDCDriver *sdcp, uint32_t startblk,
                                    startblk, resp) || MMCSD_R1_ERROR(resp[0]))
       return HAL_FAILED;
   }
-  else {
+  else{
     /* Send read single block command.*/
     if (sdc_lld_send_cmd_short_crc(sdcp, MMCSD_CMD_READ_SINGLE_BLOCK,
                                    startblk, resp) || MMCSD_R1_ERROR(resp[0]))
@@ -183,7 +184,7 @@ static bool sdc_lld_prepare_write(SDCDriver *sdcp, uint32_t startblk,
                                    startblk, resp) || MMCSD_R1_ERROR(resp[0]))
       return HAL_FAILED;
   }
-  else {
+  else{
     /* Write single block command.*/
     if (sdc_lld_send_cmd_short_crc(sdcp, MMCSD_CMD_WRITE_BLOCK,
                                    startblk, resp) || MMCSD_R1_ERROR(resp[0]))
@@ -812,9 +813,7 @@ bool sdc_lld_read(SDCDriver *sdcp, uint32_t startblk,
     }
     return HAL_SUCCESS;
   }
-#else /* !STM32_SDC_SDIO_UNALIGNED_SUPPORT */
-  osalDbgAssert((((unsigned)buf & 3) == 0), "unaligned buffer");
-#endif /* !STM32_SDC_SDIO_UNALIGNED_SUPPORT */
+#endif /* STM32_SDC_SDIO_UNALIGNED_SUPPORT */
   return sdc_lld_read_aligned(sdcp, startblk, buf, blocks);
 }
 
@@ -847,9 +846,7 @@ bool sdc_lld_write(SDCDriver *sdcp, uint32_t startblk,
     }
     return HAL_SUCCESS;
   }
-#else /* !STM32_SDC_SDIO_UNALIGNED_SUPPORT */
-  osalDbgAssert((((unsigned)buf & 3) == 0), "unaligned buffer");
-#endif /* !STM32_SDC_SDIO_UNALIGNED_SUPPORT */
+#endif /* STM32_SDC_SDIO_UNALIGNED_SUPPORT */
   return sdc_lld_write_aligned(sdcp, startblk, buf, blocks);
 }
 

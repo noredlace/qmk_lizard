@@ -19,16 +19,17 @@
 */
 
 /**
- * @file    hal_timcap.h
+ * @file    timcap.h
  * @brief   TIMCAP Driver macros and structures.
  *
  * @addtogroup TIMCAP
  * @{
  */
 
-#ifndef HAL_TIMCAP_H_
-#define HAL_TIMCAP_H_
+#ifndef _TIMCAP_H_
+#define _TIMCAP_H_
 
+#include "ch.h"
 #include "hal.h"
 
 #if (HAL_USE_TIMCAP == TRUE) || defined(__DOXYGEN__)
@@ -200,6 +201,6 @@ extern "C" {
 
 #endif /* HAL_USE_TIMCAP */
 
-#endif /* HAL_TIMCAP_H_ */
+#endif /* _TIMCAP_H_ */
 
 /** @} */

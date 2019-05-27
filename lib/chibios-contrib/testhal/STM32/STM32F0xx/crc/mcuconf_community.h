@@ -14,8 +14,8 @@
     limitations under the License.
 */
 
-#ifndef MCUCONF_COMMUNITY_H
-#define MCUCONF_COMMUNITY_H
+#ifndef _MCUCONF_COMMUNITY_H_
+#define _MCUCONF_COMMUNITY_H_
 
 /*
  * CRC driver system settings.
@@ -30,4 +30,4 @@
 #define CRCSW_CRC16_TABLE                   TRUE
 #define CRCSW_PROGRAMMABLE                  TRUE
 
-#endif /* MCUCONF_COMMUNITY_H */
+#endif

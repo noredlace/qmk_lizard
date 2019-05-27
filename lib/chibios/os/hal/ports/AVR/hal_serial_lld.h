@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    hal_serial_lld.h
+ * @file    AVR/serial_lld.h
  * @brief   AVR low level serial driver header.
  *
  * @addtogroup SERIAL
  * @{
  */
 
-#ifndef HAL_SERIAL_LLD_H
-#define HAL_SERIAL_LLD_H
+#ifndef _SERIAL_LLD_H_
+#define _SERIAL_LLD_H_
 
 #if HAL_USE_SERIAL || defined(__DOXYGEN__)
 
@@ -153,6 +153,6 @@ extern "C" {
 
 #endif /* HAL_USE_SERIAL */
 
-#endif /* HAL_SERIAL_LLD_H */
+#endif /* _SERIAL_LLD_H_ */
 
 /** @} */

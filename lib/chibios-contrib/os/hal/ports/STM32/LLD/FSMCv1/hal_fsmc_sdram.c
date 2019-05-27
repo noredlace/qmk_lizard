@@ -18,7 +18,7 @@
  */
 
 /**
- * @file    hal_fsmc_sdram.c
+ * @file    fsmc_sdram.c
  * @brief   SDRAM Driver subsystem low level driver source.
  *
  * @addtogroup SDRAM
@@ -28,11 +28,7 @@
 #include "hal.h"
 
 #if (defined(STM32F427xx) || defined(STM32F437xx) || \
-     defined(STM32F429xx) || defined(STM32F439xx) || \
-     defined(STM32F745xx) || defined(STM32F746xx) || \
-     defined(STM32F756xx) || defined(STM32F767xx) || \
-     defined(STM32F769xx) || defined(STM32F777xx) || \
-     defined(STM32F779xx))
+     defined(STM32F429xx) || defined(STM32F439xx))
 
 #if (STM32_USE_FSMC_SDRAM == TRUE) || defined(__DOXYGEN__)
 

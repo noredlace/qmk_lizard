@@ -192,6 +192,18 @@ void Vector32(void) {
   while (1) {
   }
 }
+__attribute__((interrupt(33)))
+void Vector33(void) {
+
+  while (1) {
+  }
+}
+__attribute__((interrupt(34)))
+void Vector34(void) {
+
+  while (1) {
+  }
+}
 __attribute__((interrupt(35)))
 void Vector35(void) {
 
@@ -204,7 +216,12 @@ void Vector36(void) {
   while (1) {
   }
 }
+__attribute__((interrupt(37)))
+void Vector37(void) {
 
+  while (1) {
+  }
+}
 __attribute__((interrupt(38)))
 void Vector38(void) {
 
@@ -217,7 +234,12 @@ void Vector39(void) {
   while (1) {
   }
 }
+__attribute__((interrupt(40)))
+void Vector40(void) {
 
+  while (1) {
+  }
+}
 __attribute__((interrupt(41)))
 void Vector41(void) {
 
